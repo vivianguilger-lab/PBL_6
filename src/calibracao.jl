@@ -62,13 +62,14 @@ end
 """
     calibrar(p::Paciente; pd=ParametrosPD(), eta_pk=NamedTuple(),
              cv_ref=ParametrosCV(), baro_ref=ParametrosBaro(),
-             tol=0.005, maxit=60, verbose=false) -> PacienteVirtual
+             tol=0.005, maxit=80, verbose=false) -> PacienteVirtual
 
 Constrói o paciente virtual: ajusta TPR (Rs), complacência arterial (Ca) e
 volume não estressado venoso (V0v) para que o modelo reproduza a PAM, a
 pressão de pulso AÓRTICA (PP do manguito ÷ amplificação periférica) e o
-débito cardíaco do paciente na frequência cardíaca medida. Parâmetros de "tamanho" (elastâncias, volumes) são escalados pela
-superfície corporal e pela volemia de Nadler.
+débito cardíaco do paciente na frequência cardíaca medida. Parâmetros de
+"tamanho" (elastâncias, volumes) são escalados pela superfície corporal e
+pela volemia de Nadler.
 """
 function calibrar(p::Paciente; pd = ParametrosPD(), eta_pk = NamedTuple(),
                   cv_ref = ParametrosCV(), baro_ref = ParametrosBaro(),

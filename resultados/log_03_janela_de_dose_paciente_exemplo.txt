@@ -1,0 +1,24 @@
+Paciente A - 62 anos, hipertensa controlada: 62 anos, fem., 72 kg, 160 cm | PA 148/82 (PAM 104) mmHg | FC 78 bpm | DC 5.33 L/min (estimado)
+
+ dose    mg    PAM nadir  queda   t nadir  PAM<65  PAM<55  BIS mín  risco
+ 0.50     36     97.5       6%    2.4 min   0.0     0.0       73    BAIXO
+ 0.75     54     93.4      10%    2.5 min   0.0     0.0       61    BAIXO
+ 1.00     72     88.9      14%    2.6 min   0.0     0.0       51    BAIXO
+ 1.25     90     84.3      19%    2.6 min   0.0     0.0       43    BAIXO
+ 1.50    108     79.9      23%    2.7 min   0.0     0.0       37    BAIXO
+ 1.75    126     75.7      27%    2.8 min   0.0     0.0       32    BAIXO
+ 2.00    144     71.8      31%    2.9 min   0.0     0.0       28    MODERADO
+ 2.25    162     68.3      34%    2.9 min   0.0     0.0       25    MODERADO
+ 2.50    180     65.1      37%    3.0 min   0.0     0.0       22    MODERADO
+ 2.75    198     62.2      40%    3.0 min   3.0     0.0       20    MODERADO
+ 3.00    216     59.6      43%    3.1 min   4.2     0.0       18    MODERADO
+
+Janela individual (bolus em 20 s): 0.76 a 2.51 mg/kg  (55 a 181 mg)
+  → hipnose (BIS < 60) a partir de 0.76 mg/kg; PAM ≥ 65 mmHg até 2.51 mg/kg
+
+Efeito da velocidade de injeção (mesma dose do protocolo = 1.5 mg/kg):
+  bolus em  10 s: PAM nadir 79.9 mmHg (2.6 min), BIS mín 37, PAM<65 por 0.0 min
+  bolus em  60 s: PAM nadir 80.0 mmHg (3.1 min), BIS mín 37, PAM<65 por 0.0 min
+  bolus em 120 s: PAM nadir 80.3 mmHg (3.7 min), BIS mín 39, PAM<65 por 0.0 min
+
+Figuras em: /home/user/PBL_6/resultados

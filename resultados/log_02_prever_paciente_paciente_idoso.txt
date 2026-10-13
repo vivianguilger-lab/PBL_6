@@ -1,0 +1,43 @@
+
+1) Dados pré-indução
+   Paciente C - 81 anos, hipertensão sistólica isolada: 81 anos, masc., 64 kg, 168 cm | PA 168/76 (PAM 107) mmHg | FC 64 bpm | DC 4.82 L/min (estimado)
+
+2) Calibração do paciente virtual
+Paciente virtual — Paciente C - 81 anos, hipertensão sistólica isolada: 81 anos, masc., 64 kg, 168 cm | PA 168/76 (PAM 107) mmHg | FC 64 bpm | DC 4.82 L/min (estimado)
+  calibração (convergiu em 4 iterações):
+    PAS  168.6 / alvo  168.0 mmHg   (aórtica 143.6)
+    PAD   76.1 / alvo   76.0 mmHg   (aórtica 70.1)
+    PAM  106.9 / alvo  106.7 mmHg
+    amplificação da PP aorta→braço assumida: 1.26
+    DC    4.84 / alvo   4.82 L/min   (VS 76 ml)
+  parâmetros identificados:
+    TPR = 1.164 mmHg·s/ml   AC = 0.78 ml/mmHg   τ = TPR·AC = 0.91 s   Zc = 0.030 mmHg·s/ml
+    C_S = 1/Emax = 0.45 ml/mmHg   C_D = 1/Emin = 15.2 ml/mmHg
+    volume circulante 3743 ml, não estressado venoso 1866 ml, Pms = 10.8 mmHg
+  PK (Schnider): V1 4.27 L, V2 8.0 L, V3 238 L, Cl1 1.55 L/min, t½ke0 hemodinâmico 10.2 min
+
+3) Previsão para 1.5 mg/kg (96.0 mg) em 20.0 s
+────────────────────────────────────────────────────────────────────────
+Previsão hemodinâmica — Paciente C - 81 anos, hipertensão sistólica isolada
+────────────────────────────────────────────────────────────────────────
+PAM basal            :  106.9 mmHg   (FC 64 bpm, DC 4.84 L/min)
+PAM nadir            :   66.6 mmHg   em 3.3 min (queda de 38%)
+  no nadir           : FC 72 bpm, DC 3.16 L/min, PAS 103 mmHg
+Tempo com PAM < 65   :    0.0 min    AUT = 0 mmHg·min
+Tempo com PAM < 55   :    0.0 min    AUT = 0 mmHg·min
+BIS mínimo           :     35        (BIS < 60 em 0.6 min; por 4.7 min)
+Ce máx. (SNC/vasos)  : 6.60 / 1.74 µg/ml
+Risco previsto       : MODERADO
+────────────────────────────────────────────────────────────────────────
+
+Incerteza farmacológica (200 sorteios de PK/PD, hemodinâmica do paciente fixa):
+   PAM nadir: mediana 64 mmHg (faixa 90%: 39–85)
+   P(PAM < 65) = 52%   P(PAM < 55) = 27%   P(BIS < 60) = 98%
+
+4) Leitura pelo ponto de funcionamento (Resumo, Seção 16)
+   Pms:  10.8 → 9.8 mmHg   (venodilatação: volume estressado ↓)
+   C_S:  0.45 → 0.97 ml/mmHg (depressão miocárdica: curva cardíaca achata)
+   R_VR: 0.029 → 0.028 mmHg·s/ml (TPR entra × AC/(AC+VC) ≈ 0.008)
+   DC no ponto de funcionamento: 5.00 → 3.95 L/min
+
+Figuras e CSV em: /home/user/PBL_6/resultados

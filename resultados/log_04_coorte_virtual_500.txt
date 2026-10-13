@@ -1,0 +1,22 @@
+Coorte virtual: 500 adultos | threads: 4
+Calibração: 10 s; 495/500 pacientes calibrados
+
+ protocolo                               PAM<65   PAM<55   queda>30%   queda mediana (IIQ)   nadir mediano
+ 2 mg/kg para todos                      61.6%    35.6%    60.2%      33.7% (24.0–47.3)      2.7 min
+ ajustada por idade                      48.3%    24.8%    45.9%      28.9% (20.3–40.6)      2.7 min
+ ajustada + manutenção 100 µg/kg/min     58.6%    34.1%    58.6%      33.3% (24.5–46.0)      3.6 min
+ referência clínica (problema):                   17–24%
+
+Por faixa etária — 2 mg/kg para todos:
+  18–39  n= 86  dose média 2.00 mg/kg  queda mediana 30.8%  PAM<65  54.7%  PAM<55  26.7%
+  40–54  n=153  dose média 2.00 mg/kg  queda mediana 30.8%  PAM<65  56.9%  PAM<55  31.4%
+  55–69  n=169  dose média 2.00 mg/kg  queda mediana 33.1%  PAM<65  55.6%  PAM<55  29.6%
+  ≥70    n= 87  dose média 2.00 mg/kg  queda mediana 49.3%  PAM<65  88.5%  PAM<55  63.2%
+
+Por faixa etária — ajustada por idade:
+  18–39  n= 86  dose média 2.00 mg/kg  queda mediana 29.5%  PAM<65  52.3%  PAM<55  24.4%
+  40–54  n=153  dose média 2.00 mg/kg  queda mediana 32.0%  PAM<65  54.9%  PAM<55  31.4%
+  55–69  n=169  dose média 1.51 mg/kg  queda mediana 25.3%  PAM<65  36.7%  PAM<55  18.3%
+  ≥70    n= 87  dose média 1.19 mg/kg  queda mediana 30.3%  PAM<65  55.2%  PAM<55  26.4%
+
+Figura e CSV em: /home/user/PBL_6/resultados

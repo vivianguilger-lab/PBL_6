@@ -179,8 +179,8 @@ Lista completa em [docs/validacao.md](docs/validacao.md).
 ## Por que Julia (e não Python primeiro)
 
 O ponto forte do Julia é exatamente este tipo de problema: EDOs rígidas/descontínuas
-integradas com `OrdinaryDiffEq.jl` (20 min de simulação pulsátil ≈ 1 500 batimentos em
-~0,3 s), o que permite calibrar e simular **centenas de pacientes virtuais em poucos minutos**,
+integradas com `OrdinaryDiffEq.jl` (20 min de simulação pulsátil ≈ 1 500 batimentos em menos
+de 1 s), o que permite calibrar e simular **centenas de pacientes virtuais em poucos minutos**,
 e o ecossistema `ModelingToolkit.jl` + **`CirculatorySystemModels.jl`** (biblioteca de
 componentes Windkessel em Julia — ver `extras/`). A sintaxe é próxima de Python/Matlab;
 fazer primeiro em Python só duplicaria o trabalho.

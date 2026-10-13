@@ -37,7 +37,7 @@ PAM antes da injeção — é exatamente a contribuição deste projeto.
 
 - `DifferentialEquations.jl`/`OrdinaryDiffEq.jl`: integradores de alta ordem com passo
   adaptativo, `tstops` para as descontinuidades da infusão — 20 min de simulação pulsátil
-  (≈1 500 batimentos) em ~0,3 s, o que torna viável calibrar e simular **centenas de pacientes
+  (≈1 500 batimentos) em menos de 1 s, o que torna viável calibrar e simular **centenas de pacientes
   virtuais** em poucos minutos.
 - `ModelingToolkit.jl` + `CirculatorySystemModels.jl`: montagem acausal do circuito por
   componentes (como num simulador de circuitos elétricos).
