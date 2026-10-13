@@ -1,0 +1,10 @@
+# Julia
+Manifest.toml
+*.jl.cov
+*.jl.*.cov
+*.jl.mem
+# editores / SO
+.vscode/
+.idea/
+.DS_Store
+*.swp

@@ -1,0 +1,17 @@
+# Adulto jovem saudável (ASA I) — referência de baixo risco
+[paciente]
+nome   = "Paciente B - 28 anos, ASA I"
+idade  = 28
+sexo   = "M"
+peso   = 80.0
+altura = 180.0
+pas    = 124.0
+pad    = 72.0
+fc     = 74.0
+
+[protocolo]
+dose_mg_kg           = 2.0
+duracao_bolus_s      = 20.0
+manutencao_ug_kg_min = 0.0
+limiar_pam           = 65.0
+alvo_bis             = 60.0
