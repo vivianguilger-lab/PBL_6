@@ -98,6 +98,7 @@ previsao_com_incerteza(pv; dose_mgkg = 1.5)        # faixa 90% e P(PAM < 65), P(
 | PK de Schnider, `exp(K·t)·A₀` | 3 × 10⁻¹³ |
 | parada cardíaca → todas as pressões = `Pms = (Vt − V0)/Ct` | 4 × 10⁻⁷ mmHg |
 | conservação do volume de sangue | 8 × 10⁻¹² ml |
+| mesmo circuito montado com `CirculatorySystemModels.jl` (verificação cruzada, `extras/`) | 10⁻⁴ mmHg |
 
 ![Verificação](resultados/verificacao.png)
 

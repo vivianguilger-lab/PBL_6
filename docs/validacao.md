@@ -36,6 +36,7 @@ Organizado pelas quatro fases do V&V 40 (Resumo, Seção 8.5):
 | calibração | PAM, PP aórtica e DC reproduzidos | < 1% |
 | linha de base sem fármaco | PAM e FC estáveis por 5 min | < 1,5 mmHg / 1,5 bpm |
 | ponto de funcionamento | interseção satisfaz as duas retas do curso | 10⁻¹⁰ |
+| verificação cruzada | mesmo circuito montado com `CirculatorySystemModels.jl` (ModelingToolkit), `extras/` | 10⁻⁴ mmHg |
 
 ## 4. Validação — "resolvi as equações corretas?"
 
