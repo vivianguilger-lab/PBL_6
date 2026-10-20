@@ -1,8 +1,10 @@
 # =============================================================================
 # graficos.jl — figuras do projeto (Plots.jl + GR)
 # Incluído pelos scripts: include(joinpath(@__DIR__, "graficos.jl"))
+# No REPL: include(joinpath(pkgdir(PropofolWindkessel), "scripts", "graficos.jl"))
 # =============================================================================
-ENV["GKSwstype"] = get(ENV, "GKSwstype", "100")   # GR sem janela (modo arquivo)
+# rodando como script, o GR só grava arquivos; no REPL, abre janelas
+isinteractive() || (ENV["GKSwstype"] = get(ENV, "GKSwstype", "100"))
 using Plots
 using Printf
 gr()
@@ -22,8 +24,22 @@ default(fontfamily = "sans-serif", titlefontsize = 10, guidefontsize = 9, tickfo
         gridlinewidth = 0.5, framestyle = :axes, titlelocation = :left, dpi = 150,
         left_margin = 3Plots.mm, bottom_margin = 3Plots.mm)
 
-const DIR_RESULTADOS = joinpath(@__DIR__, "..", "resultados")
-mkpath(DIR_RESULTADOS)
+# resultados/ do projeto; se a pasta não aceitar escrita (pacote instalado pelo
+# Pkg), usa ~/PBL6_resultados
+function _pasta_resultados()
+    d = normpath(joinpath(@__DIR__, "..", "resultados"))
+    try
+        mkpath(d)
+        teste = joinpath(d, ".teste_escrita")
+        touch(teste); rm(teste)
+        return d
+    catch
+        d = joinpath(homedir(), "PBL6_resultados")
+        mkpath(d)
+        return d
+    end
+end
+const DIR_RESULTADOS = _pasta_resultados()
 saida(nome) = joinpath(DIR_RESULTADOS, nome)
 
 minutos(r, t) = (t .- r.t_inducao) ./ 60
