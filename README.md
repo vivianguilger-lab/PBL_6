@@ -60,6 +60,10 @@ Credibilidade (ASME V&V 40): **[docs/validacao.md](docs/validacao.md)**.
 
 ## Uso
 
+**Windows, sem terminal:** extraia o ZIP (botão direito → *Extrair tudo*) e dê **duplo clique em
+`rodar_previsao.bat`**. Para outro paciente, arraste o arquivo `.toml` da pasta `dados` para cima
+do `rodar_previsao.bat`. As figuras ficam na pasta `resultados`.
+
 **Prever um paciente:** edite (ou copie) `dados/paciente_exemplo.toml` com os dados pré-indução
 e a dose pretendida, e rode
 
