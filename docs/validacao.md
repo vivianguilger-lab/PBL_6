@@ -25,7 +25,7 @@ Organizado pelas quatro fases do V&V 40 (Resumo, Seção 8.5):
 
 ## 3. Verificação — "resolvi as equações corretamente?"
 
-`scripts/01_verificacao.jl` e `test/runtests.jl` (63 testes, rodados no GitHub Actions a cada *push*):
+`scripts/01_verificacao.jl` e `test/runtests.jl` (68 testes, rodados no GitHub Actions a cada *push*):
 
 | teste | solução de referência | erro obtido |
 |---|---|---|

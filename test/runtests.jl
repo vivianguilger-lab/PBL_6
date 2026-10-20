@@ -130,6 +130,20 @@ const REF = Paciente(nome = "referência Schnider", idade = 53, peso = 77, altur
         @test inc.nadir_p05 <= inc.nadir_mediano <= inc.nadir_p95
     end
 
+    @testset "Plataforma: API (sem abrir servidor)" begin
+        corpo = Dict("paciente" => Dict("idade" => "53", "sexo" => "M", "peso" => "77", "altura" => "177",
+                                        "pas" => "125", "pad" => "75", "fc" => "70"),
+                     "protocolo" => Dict("dose_mgkg" => "2,0", "duracao_bolus_s" => "20"))
+        r = PropofolWindkessel._api_simular(corpo)
+        @test r["metricas"]["pam_nadir"] < r["metricas"]["pam_basal"]
+        @test length(r["batimentos"]["t"]) == length(r["batimentos"]["pam"])
+        d = PropofolWindkessel._api_doses(corpo)
+        @test length(d["doses"]) == 11
+        @test issorted([x["pam_nadir"] for x in d["doses"]]; rev = true)
+        ruim = Dict("paciente" => merge(corpo["paciente"], Dict("pas" => "70")))
+        @test_throws ArgumentError PropofolWindkessel._ler_paciente(ruim)
+    end
+
     @testset "Ponto de funcionamento (Guyton) satisfaz as duas retas" begin
         g = estado_guyton(pv.cv; Pa = pv.obtido.PAM)
         @test retorno_venoso(g.RAP, g.Pms, g.RVR) ≈ g.Q rtol = 1e-10

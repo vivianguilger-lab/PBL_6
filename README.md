@@ -58,6 +58,27 @@ Credibilidade (ASME V&V 40): **[docs/validacao.md](docs/validacao.md)**.
    julia --project=. -e "using Pkg; Pkg.test()"
    ```
 
+## Plataforma para médicos (navegador)
+
+![PropoSim](docs/figuras/plataforma.png)
+
+Interface web que roda no próprio computador: o médico digita os dados do monitor e a dose,
+e vê o risco previsto, a curva de pressão com a faixa de incerteza, FC, DC, BIS, concentrações,
+a comparação de doses (com a faixa sugerida) e o porquê da queda (vasodilatação, depressão
+miocárdica, venodilatação). Botões para imprimir/salvar PDF e baixar a curva em CSV. Os dados
+não saem do computador (o servidor só aceita conexões locais).
+
+No Julia (instalação pelo GitHub, sem baixar pasta):
+
+```julia
+using Pkg
+Pkg.add(url="https://github.com/vivianguilger-lab/PBL_6", rev="claude/windkessel-propofol-hemodynamic-p72qsk")
+using PropofolWindkessel
+plataforma()          # abre http://localhost:8080 no navegador
+```
+
+Com a pasta do projeto no Windows: duplo clique em `abrir_plataforma.bat`.
+
 ## Uso
 
 **Windows, sem terminal:** extraia o ZIP (botão direito → *Extrair tudo*) e dê **duplo clique em

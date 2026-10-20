@@ -12,6 +12,8 @@ de um paciente ao propofol?*
 module PropofolWindkessel
 
 using OrdinaryDiffEqTsit5
+using HTTP
+using JSON
 using LinearAlgebra
 using Printf
 using Random
@@ -29,6 +31,7 @@ include("metricas.jl")
 include("dose.jl")
 include("populacao.jl")
 include("incerteza.jl")
+include("plataforma.jl")
 
 # paciente
 export Paciente, ler_paciente, massa_magra, imc, superficie_corporal, volemia, pam_alvo, dc_alvo
@@ -43,6 +46,7 @@ export I_A1, I_A2, I_A3, I_CEB, I_CEH, I_FASE, I_VLV, I_VA, I_VV, I_PS, I_XFC, I
 export Resultado, integrar, batimentos, simular_inducao, media_movel
 export PacienteVirtual, calibrar, tau_diastolico
 export metricas, relatorio, varrer_doses, janela_de_dose, bissecao
+export plataforma
 export previsao_com_incerteza, amostrar_pd, amostrar_eta_pk
 export Individuo, gerar_coorte, calibrar_coorte, simular_coorte, resumo_coorte, dose_padrao, OMEGA_PK, OMEGA_PD
 export pressao_media_enchimento, resistencia_retorno_venoso, retorno_venoso, debito_cardiaco_curso, estado_guyton
