@@ -1,20 +1,18 @@
-Paciente A - 62 anos, hipertensa controlada | 1.5 mg/kg em 20 s | PAM nadir de referência = 79.9 mmHg
+Paciente A - 62 anos, hipertensa controlada | 1.5 mg/kg em 30 s + 100 µg/kg/min | PAM mínima de referência = 65.8 mmHg
 
  parâmetro                              −10%      +10%     S normalizada
- dose (mg/kg)                          +2.64    -2.55    -0.32
- ke0 vascular (Kazama 1999)            +1.90    -1.82    -0.23
- atenuação barorreflexo (assumido)     +1.32    -1.44    -0.17
- C50 TPR (Su 2023)                     -1.25    +0.99    +0.14
- DC pré-indução (estimado)             -1.18    +1.15    +0.15
- Emax inotrópico (Su 2023)             +1.09    -1.17    -0.14
- Cl1 (Schnider)                        -1.13    +1.04    +0.14
- C50 venodilatação (assumido)          -0.88    +0.76    +0.10
- Emax venodilatação (assumido)         +0.85    -0.87    -0.11
- Emax TPR (Su 2023)                    +0.79    -0.82    -0.10
- FC pré-indução                        +0.79    -0.63    -0.09
- V1 (Schnider)                         -0.56    +0.53    +0.07
- ganho barorreflexo TPR                -0.28    +0.27    +0.03
- ganho barorreflexo FC                 -0.07    +0.06    +0.01
- tempo de injeção                      -0.00    +0.00    +0.00
+ sensibilidade s                       +3.07    -3.39    -0.49
+ Imax Rp (vasodilatação)               +1.98    -1.98    -0.30
+ Ce50 hemodinâmico                     -1.44    +1.08    +0.19
+ dose (mg/kg)                          +1.15    -1.32    -0.19
+ Imax VS (volume sistólico)            +1.06    -1.06    -0.16
+ γ (Hill) hemodinâmico                 +0.87    -0.78    -0.13
+ ke0 (Schnider)                        +0.67    -0.55    -0.09
+ Imax FC                               +0.00    -0.41    -0.03
+ CL (Schnider)                         -0.37    +0.37    +0.06
+ V1 (Schnider)                         -0.36    +0.35    +0.05
+ manutenção (µg/kg/min)                +0.04    -0.04    -0.01
+ tempo de injeção                      +0.01    -0.01    -0.00
+ C (complacência arterial)             -0.00    +0.00    +0.00
 
 Figura em: /home/user/PBL_6/resultados/paciente_exemplo_sensibilidade.png

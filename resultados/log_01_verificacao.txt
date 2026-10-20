@@ -1,5 +1,4 @@
-A. Windkessel (τ = TPR·AC = 2.0 s): erro relativo máximo = 3.22e-08
-B. PK Schnider (bolus 154 mg): erro relativo máximo em Cp = 3.09e-13
-C. Parada cardíaca: Pms teórico = 11.062 mmHg; erro máximo após 30 s = 3.87e-07 mmHg
-   volume total: variação máxima = 8.19e-12 ml (conservação de massa)
+A. Windkessel 2 elementos (τ = Rp·C = 2.0 s): erro relativo máximo = 4.67e-14
+B. NeoPKPD (Schnider, bolus 154 mg): erro relativo máximo em Cp = 8.39e-10
+C. Windkessel 4 elementos: |PAM − Rp·Q̄|/PAM = 8.00e-16; periodicidade do estado = 1.78e-16
 Figura: /home/user/PBL_6/resultados/verificacao.png

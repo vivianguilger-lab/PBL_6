@@ -6,13 +6,34 @@ Busca feita no GitHub por `windkessel`, `windkessel language:julia`,
 (outubro/2026). Os dois repositórios marcados com ★ foram lidos em detalhe e
 são a base direta deste projeto.
 
+## 0. Base do modelo: PropofolPBL do grupo
+
+O núcleo do software segue o repositório do grupo
+[gabiadamek30-bit/Simula-o-da-resposta-do-paciente-ao-propofol---PBL](https://github.com/gabiadamek30-bit/Simula-o-da-resposta-do-paciente-ao-propofol---PBL)
+(pacote Julia `PropofolPBL`), que junta:
+
+| repositório | o que o modelo usa |
+|---|---|
+| ★ [shramish2057/NeoPKPD](https://github.com/shramish2057/NeoPKPD) (pacote registrado no Julia, MIT) | motor PK/PD: `ThreeCompIVBolus` com bolus e infusões, `simulate_biophase` (ke0) |
+| ★ [hpigot/windkessel-id](https://github.com/hpigot/windkessel-id) (MIT) | Windkessel de 2/3/4 elementos (`G2`, `G3`, `G`), `solvex0`, identificação por Newton (`identify`), dados de Stergiopulos (1999) e in vivo |
+
+Do grupo vieram: o `Paciente` com ASA, PVI, IVCI, SpO₂ e glicemia; a PK de Schnider/Marsh no
+NeoPKPD; o BIS de Eleveld; a porta do windkessel-id para Julia atual (`src/windkessel.jl`); o
+acoplamento Emax sigmoide Ce → Rp, VS, FC com o fator de sensibilidade; o fluxo aórtico de
+Stergiopulos escalado por VS e FC; e os testes. Os dados do windkessel-id estão em
+`dados/windkessel-id/` com a licença original.
+
+Os repositórios abaixo (seções 1 e 2) foram a pesquisa inicial; o
+`CirculatorySystemModels.jl` e o modelo de malha fechada que ele inspirou foram usados na
+versão anterior do software (até o commit `d3dd331`).
+
 ## 1. Repositórios de modelos Windkessel / circulação
 
 | repositório | linguagem | o que oferece | como usamos |
 |---|---|---|---|
-| ★ [TS-CUBED/CirculatorySystemModels.jl](https://github.com/TS-CUBED/CirculatorySystemModels.jl) | **Julia** (ModelingToolkit) | Biblioteca acausal de componentes 0-D: `Resistor`, `Compliance` (com volume não estressado V₀), `Elastance`, `WK3`, `WK4`, `WK5`, câmaras de elastância variável (`DHChamber` duplo-Hill, `ShiChamber`), valvas (`ResistorDiode`, `ShiValve`, `MynardValve`). Exemplo completo do modelo de Bjørdalsbakke et al. (2022): um ventrículo + Windkessel + compartimento venoso em malha fechada. | É provavelmente o "repositório específico em Julia" a que o professor se referiu. Adotamos a mesma **topologia** (ventrículo único de elastância variável, valvas como diodos com resistência pequena, complacências com volume não estressado). Escrevemos as equações à mão (sem ModelingToolkit) para que cada termo corresponda a uma equação do Resumo da disciplina; ver `extras/` para a montagem equivalente com a biblioteca. |
+| ★ [TS-CUBED/CirculatorySystemModels.jl](https://github.com/TS-CUBED/CirculatorySystemModels.jl) | **Julia** (ModelingToolkit) | Biblioteca acausal de componentes 0-D: `Resistor`, `Compliance` (com volume não estressado V₀), `Elastance`, `WK3`, `WK4`, `WK5`, câmaras de elastância variável (`DHChamber` duplo-Hill, `ShiChamber`), valvas (`ResistorDiode`, `ShiValve`, `MynardValve`). Exemplo completo do modelo de Bjørdalsbakke et al. (2022): um ventrículo + Windkessel + compartimento venoso em malha fechada. | Usado na versão anterior (malha fechada com elastância variável). O modelo atual segue o PropofolPBL do grupo (seção 0). |
 | [dcanuto/WK3](https://github.com/dcanuto/WK3) | Julia | Windkessel de 3 elementos em malha aberta com fonte de pressão ventricular. | Referência para o WK3. |
-| [hpigot/windkessel-id](https://github.com/hpigot/windkessel-id) | Julia | Identificação de Windkessel de 2, 3 e 4 elementos a partir de dados de pressão e fluxo. | Caminho natural para calibrar AC/TPR/Zc com a curva da **linha arterial** pré-indução (trabalho futuro). |
+| [hpigot/windkessel-id](https://github.com/hpigot/windkessel-id) | Julia | Identificação de Windkessel de 2, 3 e 4 elementos a partir de dados de pressão e fluxo. | **Usado no modelo atual** (via PropofolPBL do grupo): Windkessel de 4 elementos e identificação. |
 | [lawmurray/Windkessel](https://github.com/lawmurray/Windkessel) | LibBi/Matlab | WK3 com estimação bayesiana. | Ideia de quantificar incerteza dos parâmetros. |
 | [MiSpitieris/BC-of-Arterial-WK](https://github.com/MiSpitieris/BC-of-Arterial-WK) | R | Código do artigo "Bayesian Calibration of Arterial Windkessel Model". | Idem — calibração com incerteza. |
 | [TAMU-ESP/WPINN](https://github.com/TAMU-ESP/WPINN) | Python | Rede neural informada pela física do Windkessel. | Mostra a fronteira *grey-box*/aprendizado de máquina. |
@@ -29,9 +50,8 @@ são a base direta deste projeto.
 | [danieltorres-sci/propofol-simulator](https://github.com/danieltorres-sci/propofol-simulator) | Python | Modelo de Schnider com concentração no local de efeito. | Conferência dos valores de Schnider. |
 | [shashankag14/Propofol-Predictor](https://github.com/shashankag14/Propofol-Predictor) | Python | Predição de concentração (PK + aprendizado de máquina). | — |
 
-**Lacuna encontrada:** nenhum repositório acopla PK/PD do propofol a um modelo
-**Windkessel em malha fechada calibrado por paciente** para prever a curva de
-PAM antes da injeção — é exatamente a contribuição deste projeto.
+**Lacuna encontrada:** além do PropofolPBL do grupo, nenhum repositório acopla PK/PD do
+propofol a um Windkessel calibrado por paciente para prever a curva de PAM antes da injeção.
 
 ## 3. Por que Julia
 
@@ -39,8 +59,8 @@ PAM antes da injeção — é exatamente a contribuição deste projeto.
   adaptativo, `tstops` para as descontinuidades da infusão — 20 min de simulação pulsátil
   (≈1 500 batimentos) em menos de 1 s, o que torna viável calibrar e simular **centenas de pacientes
   virtuais** em poucos minutos.
-- `ModelingToolkit.jl` + `CirculatorySystemModels.jl`: montagem acausal do circuito por
-  componentes (como num simulador de circuitos elétricos).
+- `NeoPKPD.jl`: motor de farmacometria em Julia (PK/PD, populações, estimação).
+- `Optim.jl` + `ForwardDiff.jl`: identificação do Windkessel por Newton com derivadas automáticas.
 - Velocidade de C com sintaxe próxima da matemática (dá para escrever `τ = TPR·AC`).
 - Recomendação: **fazer direto em Julia** — a sintaxe é próxima de Python/Matlab e o
   ecossistema de EDOs é o ponto forte da linguagem; um protótipo em Python só duplicaria o

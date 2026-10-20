@@ -1,82 +1,68 @@
 # =============================================================================
-# paciente.jl — dados pré-indução do paciente e índices antropométricos
+# paciente.jl — biomarcadores do paciente (estrutura do PropofolPBL do grupo)
 # =============================================================================
 
 """
-    Paciente(; nome, idade, peso, altura, sexo, pas, pad, fc, pam=nothing, dc=nothing)
+    Paciente(; nome, idade, peso, altura, sexo, asa, pas, pad, fc, pam, dc,
+               spo2, glicemia, pvi, ivci)
 
-Dados que o anestesista tem **antes** da injeção (monitor + prontuário):
+Dados que o anestesista tem antes da injeção. Unidades: idade em anos, peso em
+kg, altura em cm, pressões em mmHg, FC em bpm, DC em L/min, SpO₂ em %,
+glicemia em mg/dL, PVI e IVCI em %.
 
-| campo    | unidade | significado                                              |
-|:---------|:--------|:---------------------------------------------------------|
-| `idade`  | anos    |                                                          |
-| `peso`   | kg      |                                                          |
-| `altura` | cm      |                                                          |
-| `sexo`   | `:M`/`:F` |                                                        |
-| `pas`    | mmHg    | pressão arterial sistólica pré-indução                   |
-| `pad`    | mmHg    | pressão arterial diastólica pré-indução                  |
-| `fc`     | bpm     | frequência cardíaca pré-indução                          |
-| `pam`    | mmHg    | PAM medida (opcional; se ausente, PAD + (PAS−PAD)/3)     |
-| `dc`     | L/min   | débito cardíaco medido (opcional; se ausente, estimado)  |
+Uso no modelo (como no PropofolPBL do grupo):
+- PK (Schnider/Marsh): idade, peso, altura, sexo.
+- PD (BIS, Eleveld): idade.
+- Hemodinâmica basal (Windkessel): PAM, FC, superfície corporal (DC opcional);
+  PAS e PAD calibram a complacência arterial C (paciente virtual).
+- Sensibilidade hemodinâmica ao propofol: idade, ASA, PVI, IVCI.
+- SpO₂ e glicemia são registrados, mas ainda não entram em nenhuma equação.
 """
 Base.@kwdef struct Paciente
     nome::String = "Paciente"
     idade::Float64
     peso::Float64
     altura::Float64
-    sexo::Symbol
+    sexo::Symbol = :F
+    asa::Int = 1
     pas::Float64
     pad::Float64
     fc::Float64
     pam::Union{Nothing,Float64} = nothing
     dc::Union{Nothing,Float64} = nothing
-    function Paciente(nome, idade, peso, altura, sexo, pas, pad, fc, pam, dc)
+    spo2::Float64 = 98.0
+    glicemia::Float64 = 95.0
+    pvi::Float64 = 10.0          # pleth variability index
+    ivci::Float64 = 20.0         # índice de colapsabilidade da veia cava inferior
+    function Paciente(nome, idade, peso, altura, sexo, asa, pas, pad, fc, pam, dc, spo2, glicemia, pvi, ivci)
         sexo in (:M, :F) || throw(ArgumentError("sexo deve ser :M ou :F"))
         pas > pad || throw(ArgumentError("PAS deve ser maior que PAD"))
-        new(nome, idade, peso, altura, sexo, pas, pad, fc, pam, dc)
+        1 <= asa <= 5 || throw(ArgumentError("ASA deve estar entre 1 e 5"))
+        new(nome, idade, peso, altura, sexo, asa, pas, pad, fc, pam, dc, spo2, glicemia, pvi, ivci)
     end
 end
 
-"""Massa magra (James, 1976) [kg] — a covariável usada no modelo de Schnider."""
-function massa_magra(p::Paciente)
-    r = p.peso / p.altura                    # kg/cm
-    lbm = p.sexo == :M ? 1.1 * p.peso - 128 * r^2 : 1.07 * p.peso - 148 * r^2
-    return lbm
-end
-
-"""Índice de massa corporal [kg/m²]."""
 imc(p::Paciente) = p.peso / (p.altura / 100)^2
 
-"""Superfície corporal (Mosteller) [m²]."""
-superficie_corporal(p::Paciente) = sqrt(p.altura * p.peso / 3600)
-
-"""Volemia total estimada (Nadler, 1962) [ml]."""
-function volemia(p::Paciente)
-    h = p.altura / 100
-    litros = p.sexo == :M ? 0.3669 * h^3 + 0.03219 * p.peso + 0.6041 :
-                            0.3561 * h^3 + 0.03308 * p.peso + 0.1833
-    return 1000 * litros
+"Massa magra (fórmula de James), usada por Schnider. Perde validade para IMC muito alto."
+function massa_magra(p::Paciente)
+    r = p.peso / p.altura
+    return p.sexo == :M ? 1.1 * p.peso - 128 * r^2 : 1.07 * p.peso - 148 * r^2
 end
 
-"""PAM-alvo da calibração [mmHg]: a medida, ou PAD + (PAS − PAD)/3."""
-pam_alvo(p::Paciente) = something(p.pam, p.pad + (p.pas - p.pad) / 3)
+"Superfície corporal [m²] (Mosteller)."
+superficie_corporal(p::Paciente) = sqrt(p.altura * p.peso / 3600)
 
-"""
-    indice_cardiaco_estimado(idade)
+"PAM basal [mmHg]: a medida, ou PAD + (PAS − PAD)/3."
+pam_basal(p::Paciente) = something(p.pam, p.pad + (p.pas - p.pad) / 3)
 
-Índice cardíaco de repouso [L/min/m²] quando o DC não é medido.
-Suposição do modelo: ≈3,4 aos 20 anos com queda de ≈0,01 L/min/m² por ano,
-limitado a [2,5; 3,6].
-"""
-indice_cardiaco_estimado(idade) = clamp(3.4 - 0.01 * (idade - 20), 2.5, 3.6)
-
-"""Débito cardíaco-alvo da calibração [L/min]."""
-dc_alvo(p::Paciente) = something(p.dc, indice_cardiaco_estimado(p.idade) * superficie_corporal(p))
+"Débito cardíaco basal [L/min]: o medido, ou 3,0 L/min/m² × superfície corporal (como no grupo)."
+debito_basal(p::Paciente) = something(p.dc, 3.0 * superficie_corporal(p))
 
 function Base.show(io::IO, p::Paciente)
-    @printf(io, "%s: %d anos, %s, %.0f kg, %.0f cm | PA %.0f/%.0f (PAM %.0f) mmHg | FC %.0f bpm | DC %.2f L/min%s",
-            p.nome, round(Int, p.idade), p.sexo == :M ? "masc." : "fem.", p.peso, p.altura,
-            p.pas, p.pad, pam_alvo(p), p.fc, dc_alvo(p), p.dc === nothing ? " (estimado)" : "")
+    @printf(io, "%s: %d anos, %s, %.0f kg, %.0f cm, ASA %d | PA %.0f/%.0f (PAM %.0f) mmHg | FC %.0f bpm | DC %.2f L/min%s | PVI %.0f%%, IVCI %.0f%%",
+            p.nome, round(Int, p.idade), p.sexo == :M ? "masc." : "fem.", p.peso, p.altura, p.asa,
+            p.pas, p.pad, pam_basal(p), p.fc, debito_basal(p), p.dc === nothing ? " (estimado)" : "", p.pvi, p.ivci)
 end
 
 """
@@ -90,8 +76,10 @@ function ler_paciente(arquivo::AbstractString)
     pd = d["paciente"]
     p = Paciente(nome = get(pd, "nome", basename(arquivo)),
                  idade = pd["idade"], peso = pd["peso"], altura = pd["altura"],
-                 sexo = Symbol(uppercase(pd["sexo"])),
+                 sexo = Symbol(uppercase(pd["sexo"])), asa = get(pd, "asa", 1),
                  pas = pd["pas"], pad = pd["pad"], fc = pd["fc"],
-                 pam = get(pd, "pam", nothing), dc = get(pd, "dc", nothing))
+                 pam = get(pd, "pam", nothing), dc = get(pd, "dc", nothing),
+                 spo2 = get(pd, "spo2", 98.0), glicemia = get(pd, "glicemia", 95.0),
+                 pvi = get(pd, "pvi", 10.0), ivci = get(pd, "ivci", 20.0))
     return p, get(d, "protocolo", Dict{String,Any}())
 end

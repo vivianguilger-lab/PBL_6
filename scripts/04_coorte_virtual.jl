@@ -1,11 +1,12 @@
 # =============================================================================
 # 04_coorte_virtual.jl — ensaio clínico virtual (Resumo, Seção 8.7)
 #
-# Gera N adultos virtuais, calibra cada um com os próprios dados pré-indução
-# e simula a indução em três protocolos:
+# Gera N adultos virtuais (com ASA, PVI e IVCI, como no modelo do grupo),
+# calibra cada um com os próprios dados pré-indução e simula a indução
+# (bolus em 30 s + manutenção de 100 µg/kg/min, esquema do grupo) em:
 #   1. dose fixa de 2 mg/kg para todos;
 #   2. dose ajustada por idade (2,0 / 1,5 / 1,2 mg/kg);
-#   3. dose ajustada por idade + manutenção de 100 µg/kg/min.
+#   3. dose ajustada por idade, só bolus (sem manutenção).
 #
 # Verificação de plausibilidade populacional: a literatura do problema relata
 # PAM < 55 mmHg em 17–24% dos adultos nos 20 min após a indução.
@@ -24,7 +25,7 @@ t = @elapsed pvs = calibrar_coorte(coorte)
 
 cenarios = [("2 mg/kg para todos", (; dose_fixa = 2.0)),
             ("ajustada por idade", NamedTuple()),
-            ("ajustada + manutenção 100 µg/kg/min", (; manutencao_ugkgmin = 100.0))]
+            ("ajustada, só bolus", (; manutencao_ugkgmin = 0.0))]
 resultados = Dict{String,Any}()
 println("\n protocolo                               PAM<65   PAM<55   queda>30%   queda mediana (IIQ)   nadir mediano")
 for (nome, kw) in cenarios
@@ -53,6 +54,13 @@ for nome in ("2 mg/kg para todos", "ajustada por idade")
     end
 end
 res = resultados["ajustada por idade"]
+println("\nPor ASA (dose ajustada por idade):")
+for a in 1:4
+    sel = filter(r -> r.asa == a, res)
+    isempty(sel) && continue
+    @printf("  ASA %d  n=%3d  sensibilidade média %.2f  queda mediana %4.1f%%  PAM<55 %5.1f%%\n", a, length(sel),
+            mean(r.s for r in sel), median(r.queda_pct for r in sel), 100 * mean(r.min_abaixo_55 > 0 for r in sel))
+end
 
 # --- figura -------------------------------------------------------------------
 fixa = resultados["2 mg/kg para todos"]
@@ -76,11 +84,11 @@ savefig(plot(pA, pB, pC; layout = (1, 3), size = (1200, 400), bottom_margin = 6P
         saida("coorte_virtual.png"))
 
 open(saida("coorte_virtual.csv"), "w") do io
-    println(io, "idade,sexo,peso,pam_basal,dose_mgkg,pam_nadir,queda_pct,t_nadir,min_abaixo_65,min_abaixo_55,bis_min,risco")
+    println(io, "idade,sexo,peso,asa,pvi,ivci,sensibilidade,pam_basal,dose_mgkg,pam_nadir,queda_pct,t_nadir,min_abaixo_65,min_abaixo_55,bis_min,risco")
     for r in res
-        @printf(io, "%.1f,%s,%.1f,%.1f,%.2f,%.1f,%.1f,%.2f,%.2f,%.2f,%.0f,%s\n", r.idade, r.sexo, r.peso,
-                r.pam_basal, r.dose_mgkg, r.pam_nadir, r.queda_pct, r.t_nadir, r.min_abaixo_65, r.min_abaixo_55,
-                r.bis_min, r.risco)
+        @printf(io, "%.1f,%s,%.1f,%d,%.1f,%.1f,%.3f,%.1f,%.2f,%.1f,%.1f,%.2f,%.2f,%.2f,%.0f,%s\n", r.idade, r.sexo, r.peso,
+                r.asa, r.pvi, r.ivci, r.s, r.pam_basal, r.dose_mgkg, r.pam_nadir, r.queda_pct, r.t_nadir,
+                r.min_abaixo_65, r.min_abaixo_55, r.bis_min, r.risco)
     end
 end
 println("\nFigura e CSV em: ", normpath(DIR_RESULTADOS))

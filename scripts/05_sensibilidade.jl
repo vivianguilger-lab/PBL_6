@@ -1,12 +1,8 @@
 # =============================================================================
 # 05_sensibilidade.jl — análise de sensibilidade local (±10%)
 #
-# Credibilidade (Resumo, Seção 8.3): quais parâmetros mais mudam a previsão?
-# Os mais influentes são os que mais precisam de dados para serem
-# individualizados — e indicam onde o modelo é frágil.
-#
-# Saída: variação do nadir de PAM (mmHg) para −10% e +10% de cada parâmetro
-# e a sensibilidade normalizada S = (ΔPAM/PAM)/(Δp/p).
+# Quais parâmetros do modelo do grupo mais mudam a PAM mínima prevista?
+# Os mais influentes são os que mais precisam ser calibrados com dados.
 #
 # Uso: julia --project=. -t auto scripts/05_sensibilidade.jl dados/paciente_exemplo.toml
 # =============================================================================
@@ -17,38 +13,42 @@ arquivo = isempty(ARGS) ? joinpath(@__DIR__, "..", "dados", "paciente_exemplo.to
 pac, prot = ler_paciente(arquivo)
 nome = splitext(basename(arquivo))[1]
 dose = get(prot, "dose_mg_kg", 2.0)
-dur = get(prot, "duracao_bolus_s", 20.0)
-pd0 = ParametrosPD()
-baro0 = ParametrosBaro()
+dur = get(prot, "duracao_bolus_s", 30.0)
+manut = get(prot, "manutencao_ug_kg_min", 100.0)
+ef0 = EfeitoHemodinamico()
+pv0 = calibrar(pac)
+s0 = pv0.s
 
-function nadir(; pd = pd0, eta = NamedTuple(), baro = baro0, dose = dose, dur = dur, p = pac)
-    pv = calibrar(p; pd, eta_pk = eta, baro_ref = baro)
-    return metricas(simular_inducao(pv; dose_mgkg = dose, duracao_bolus = dur, saveat = 0.01)).pam_nadir
+function nadir(; ef = ef0, eta = NamedTuple(), s = s0, dose = dose, dur = dur, manut = manut, pv = pv0)
+    pk = parametros_pk(pv.paciente, :schnider; eta)
+    return metricas(simular_inducao(pv; pk, efeito = ef, s, dose_mgkg = dose, duracao_bolus = dur,
+                                    manutencao_ugkgmin = manut)).pam_nadir
 end
-pacm(; kw...) = Paciente(; nome = pac.nome, idade = pac.idade, peso = pac.peso, altura = pac.altura, sexo = pac.sexo,
-                         pas = pac.pas, pad = pac.pad, fc = pac.fc, pam = pac.pam, dc = dc_alvo(pac), kw...)
+comef(; kw...) = EfeitoHemodinamico(; (k => getfield(ef0, k) for k in fieldnames(EfeitoHemodinamico))..., kw...)
+function comC(f)
+    pv = calibrar(pac; ajustar_C = false)
+    pv.θ[2] = pv0.θ[2] * f
+    return nadir(; pv)
+end
 
-# (rótulo, função f(fator) → nadir)
 parametros = [
-    ("C50 TPR (Su 2023)",            f -> nadir(pd = com(pd0; tpr_C50 = pd0.tpr_C50 * f))),
-    ("Emax TPR (Su 2023)",           f -> nadir(pd = com(pd0; tpr_Emax = pd0.tpr_Emax * f))),
-    ("Emax inotrópico (Su 2023)",    f -> nadir(pd = com(pd0; inot_Emax35 = pd0.inot_Emax35 * f))),
-    ("Emax venodilatação (assumido)", f -> nadir(pd = com(pd0; veno_Emax = pd0.veno_Emax * f))),
-    ("C50 venodilatação (assumido)", f -> nadir(pd = com(pd0; veno_C50 = pd0.veno_C50 * f))),
-    ("atenuação barorreflexo (assumido)", f -> nadir(pd = com(pd0; baro_Emax = min(pd0.baro_Emax * f, 0.99)))),
-    ("ke0 vascular (Kazama 1999)",   f -> nadir(eta = (ke0_hemo = f,))),
+    ("Ce50 hemodinâmico",            f -> nadir(ef = comef(Ce50 = ef0.Ce50 * f))),
+    ("γ (Hill) hemodinâmico",        f -> nadir(ef = comef(γ = ef0.γ * f))),
+    ("Imax Rp (vasodilatação)",      f -> nadir(ef = comef(Imax_Rp = ef0.Imax_Rp * f))),
+    ("Imax VS (volume sistólico)",   f -> nadir(ef = comef(Imax_VS = ef0.Imax_VS * f))),
+    ("Imax FC",                      f -> nadir(ef = comef(Imax_FC = ef0.Imax_FC * f))),
+    ("sensibilidade s",              f -> nadir(s = s0 * f)),
+    ("ke0 (Schnider)",               f -> nadir(eta = (ke0 = f,))),
     ("V1 (Schnider)",                f -> nadir(eta = (V1 = f,))),
-    ("Cl1 (Schnider)",               f -> nadir(eta = (Cl1 = f,))),
-    ("ganho barorreflexo TPR",       f -> nadir(baro = com(baro0; A_R = baro0.A_R * f))),
-    ("ganho barorreflexo FC",        f -> nadir(baro = com(baro0; A_FC = baro0.A_FC * f))),
-    ("DC pré-indução (estimado)",    f -> nadir(p = pacm(dc = dc_alvo(pac) * f))),
-    ("FC pré-indução",               f -> nadir(p = pacm(fc = pac.fc * f))),
+    ("CL (Schnider)",                f -> nadir(eta = (CL = f,))),
+    ("C (complacência arterial)",    comC),
     ("dose (mg/kg)",                 f -> nadir(dose = dose * f)),
+    ("manutenção (µg/kg/min)",       f -> nadir(manut = manut * f)),
     ("tempo de injeção",             f -> nadir(dur = dur * f)),
 ]
 
 base = nadir()
-@printf("%s | %.1f mg/kg em %.0f s | PAM nadir de referência = %.1f mmHg\n\n", pac.nome, dose, dur, base)
+@printf("%s | %.1f mg/kg em %.0f s + %.0f µg/kg/min | PAM mínima de referência = %.1f mmHg\n\n", pac.nome, dose, dur, manut, base)
 linhas = Vector{Any}(undef, length(parametros))
 Threads.@threads for k in eachindex(parametros)
     rot, f = parametros[k]
@@ -62,10 +62,10 @@ for l in reverse(linhas)
 end
 
 y = 1:length(linhas)
-xm = 1.15 * maximum(max(abs(l.menos), abs(l.mais)) for l in linhas)
+xm = 1.15 * max(maximum(max(abs(l.menos), abs(l.mais)) for l in linhas), 0.1)
 p = bar(y, [l.menos for l in linhas]; orientation = :h, bar_width = 0.7, color = COR.s1, lw = 0, label = "−10%",
-        yticks = (y, [l.rot for l in linhas]), xlabel = "variação do nadir de PAM (mmHg)",
-        title = @sprintf("Sensibilidade local — %s (nadir %.1f mmHg)", pac.nome, base),
+        yticks = (y, [l.rot for l in linhas]), xlabel = "variação da PAM mínima (mmHg)",
+        title = @sprintf("Sensibilidade local — %s (PAM mínima %.1f mmHg)", pac.nome, base),
         size = (950, 560), legend = :bottomright, left_margin = 6Plots.mm,
         xlims = (-xm, xm), ylims = (0.4, length(linhas) + 0.6))
 bar!(p, y, [l.mais for l in linhas]; orientation = :h, bar_width = 0.7, color = COR.s2, lw = 0, label = "+10%")

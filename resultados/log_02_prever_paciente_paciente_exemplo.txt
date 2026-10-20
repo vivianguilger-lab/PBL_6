@@ -1,43 +1,30 @@
 
-1) Dados pré-indução
-   Paciente A - 62 anos, hipertensa controlada: 62 anos, fem., 72 kg, 160 cm | PA 148/82 (PAM 104) mmHg | FC 78 bpm | DC 5.33 L/min (estimado)
+1) Biomarcadores pré-indução
+   Paciente A - 62 anos, hipertensa controlada: 62 anos, fem., 72 kg, 160 cm, ASA 2 | PA 148/82 (PAM 104) mmHg | FC 78 bpm | DC 5.37 L/min (estimado) | PVI 12%, IVCI 25%
 
-2) Calibração do paciente virtual
-Paciente virtual — Paciente A - 62 anos, hipertensa controlada: 62 anos, fem., 72 kg, 160 cm | PA 148/82 (PAM 104) mmHg | FC 78 bpm | DC 5.33 L/min (estimado)
-  calibração (convergiu em 4 iterações):
-    PAS  148.0 / alvo  148.0 mmHg   (aórtica 129.0)
-    PAD   81.9 / alvo   82.0 mmHg   (aórtica 77.3)
-    PAM  103.9 / alvo  104.0 mmHg
-    amplificação da PP aorta→braço assumida: 1.28
-    DC    5.33 / alvo   5.33 L/min   (VS 68 ml)
-  parâmetros identificados:
-    TPR = 1.023 mmHg·s/ml   AC = 1.04 ml/mmHg   τ = TPR·AC = 1.07 s   Zc = 0.030 mmHg·s/ml
-    C_S = 1/Emax = 0.47 ml/mmHg   C_D = 1/Emin = 15.7 ml/mmHg
-    volume circulante 3420 ml, não estressado venoso 1607 ml, Pms = 10.6 mmHg
-  PK (Schnider): V1 4.27 L, V2 15.4 L, V3 238 L, Cl1 2.03 L/min, t½ke0 hemodinâmico 8.8 min
+2) Paciente virtual
+Paciente virtual — Paciente A - 62 anos, hipertensa controlada: 62 anos, fem., 72 kg, 160 cm, ASA 2 | PA 148/82 (PAM 104) mmHg | FC 78 bpm | DC 5.37 L/min (estimado) | PVI 12%, IVCI 25%
+  PA do modelo 136/70 (PAM 103.9) mmHg | medida 148/82 (PAM 104.0)
+  Windkessel 4 elementos: Rp = 1.163 mmHg·s/ml, C = 0.61 ml/mmHg, Rc = 0.056, L = 0.0051 | τ = Rp·C = 0.71 s
+  DC 5.37 L/min, VS 69 ml | sensibilidade hemodinâmica s = 1.12
+  PK (schnider): CL 2.03 L/min, V1 4.27 L, V2 15.4 L, V3 238 L, ke0 0.456 /min
 
-3) Previsão para 1.5 mg/kg (108.0 mg) em 20.0 s
+3) Previsão para 1.5 mg/kg (108.0 mg) em 30.0 s + manutenção 100.0 µg/kg/min
 ────────────────────────────────────────────────────────────────────────
 Previsão hemodinâmica — Paciente A - 62 anos, hipertensa controlada
 ────────────────────────────────────────────────────────────────────────
-PAM basal            :  103.9 mmHg   (FC 78 bpm, DC 5.33 L/min)
-PAM nadir            :   79.9 mmHg   em 2.7 min (queda de 23%)
-  no nadir           : FC 86 bpm, DC 4.55 L/min, PAS 114 mmHg
+PAM basal            :  103.9 mmHg   (FC 78 bpm, DC 5.37 L/min)
+PAM mínima           :   65.8 mmHg   em 2.0 min (queda de 37%)
+  nesse momento      : PA 94/38, FC 74 bpm, DC 4.41 L/min
 Tempo com PAM < 65   :    0.0 min    AUT = 0 mmHg·min
 Tempo com PAM < 55   :    0.0 min    AUT = 0 mmHg·min
-BIS mínimo           :     37        (BIS < 60 em 0.5 min; por 4.0 min)
-Ce máx. (SNC/vasos)  : 6.32 / 1.77 µg/ml
-Risco previsto       : BAIXO
+BIS mínimo           :     14        (BIS < 60 em 0.4 min; por 19.6 min)
+Ce máxima            : 6.51 µg/ml
+Risco previsto       : MODERADO
 ────────────────────────────────────────────────────────────────────────
 
-Incerteza farmacológica (200 sorteios de PK/PD, hemodinâmica do paciente fixa):
-   PAM nadir: mediana 77 mmHg (faixa 90%: 52–91)
-   P(PAM < 65) = 18%   P(PAM < 55) = 7%   P(BIS < 60) = 97%
-
-4) Leitura pelo ponto de funcionamento (Resumo, Seção 16)
-   Pms:  10.6 → 9.6 mmHg   (venodilatação: volume estressado ↓)
-   C_S:  0.47 → 0.64 ml/mmHg (depressão miocárdica: curva cardíaca achata)
-   R_VR: 0.031 → 0.029 mmHg·s/ml (TPR entra × AC/(AC+VC) ≈ 0.010)
-   DC no ponto de funcionamento: 5.66 → 5.20 L/min
+Incerteza (200 sorteios de PK e de resposta hemodinâmica, hemodinâmica basal fixa):
+   PAM mínima: mediana 66 mmHg (faixa 90%: 52–78)
+   P(PAM < 65) = 40%   P(PAM < 55) = 10%   P(BIS < 60) = 100%
 
 Figuras e CSV em: /home/user/PBL_6/resultados

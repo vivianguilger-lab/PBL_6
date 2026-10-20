@@ -1,0 +1,6 @@
+A. Stergiopulos — 2 elementos: θ̂ = [0.802, 1.68]  RMSE = 6.82 mmHg
+A. Stergiopulos — 3 elementos: θ̂ = [0.769, 1.81, 0.0339]  RMSE = 2.89 mmHg
+A. Stergiopulos — 4 elementos: θ̂ = [0.803, 1.25, 0.0562, 0.00547]  RMSE = 2.40 mmHg
+   θ publicado (4 elementos) = [0.79, 1.22, 0.056, 0.0051]
+B. in vivo — 4 elementos: θ̂ (L/min) = [62.9, 0.0854, 1.58, 8.52]  RMSE = 5.56 mmHg
+Figura: /home/user/PBL_6/resultados/identificacao_windkessel.png

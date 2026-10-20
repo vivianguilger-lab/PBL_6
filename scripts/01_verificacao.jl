@@ -2,68 +2,56 @@
 # 01_verificacao.jl — VERIFICAÇÃO: "resolvi as equações corretamente?"
 # (ASME V&V 40 — Resumo, Seção 8.5)
 #
-# Três problemas com solução exata conhecida:
-#   A. Windkessel de 2 elementos na diástole: P(t) = P0·exp(−t/RC)
-#   B. Farmacocinética de Schnider (linear):  A(t) = exp(K·t)·A0
-#   C. Parada cardíaca: todas as pressões convergem para
-#      Pms = (Vtotal − V0)/(AC + VC + C_D)     (Resumo, eq. 8)
+#   A. Windkessel de 2 elementos (windkessel-id, G2) na diástole: P(t) = P0·exp(−t/RpC)
+#   B. NeoPKPD (Schnider, bolus) contra a solução exata A(t) = exp(K·t)·A0
+#   C. Windkessel de 4 elementos: PAM = Rp·Q̄ e estado periódico (solvex0)
 #
 # Uso: julia --project=. scripts/01_verificacao.jl
 # =============================================================================
 using PropofolWindkessel
-using LinearAlgebra
+using LinearAlgebra, Statistics
 include(joinpath(@__DIR__, "graficos.jl"))
 
-ref = Paciente(nome = "referência", idade = 53, peso = 77, altura = 177, sexo = :M, pas = 125, pad = 75, fc = 70)
-pv = calibrar(ref)
+# --- A. Windkessel de 2 elementos: descarga sem fluxo de entrada ---------------
+Rp, C, h = 1.0, 2.0, 0.005                    # valores do Resumo: τ = Rp·C = 2 s
+sys = G2([Rp, C], h)
+x0 = [C * 100.0]                              # volume no capacitor ⇒ P0 = 100 mmHg
+y, = lsim_wk(sys, zeros(1200), x0)
+t = h .* (0:1199)
+exata = 100 .* exp.(-t ./ (Rp * C))
+errA = maximum(abs.(y .- exata) ./ exata)
+@printf("A. Windkessel 2 elementos (τ = Rp·C = %.1f s): erro relativo máximo = %.2e\n", Rp * C, errA)
 
-# --- A. Windkessel de 2 elementos ---------------------------------------------
-cv = ParametrosCV(Emax = 0.06, Emin = 0.06, Cv = 1e9, Vv0 = 0.0, Ca = 2.0, Rs = 1.0)   # valores do Resumo
-u0 = zeros(NESTADOS); P0 = 100.0
-u0[I_VLV] = cv.Vd; u0[I_VA] = cv.Va0 + cv.Ca * P0
-m = ModeloInducao(pv.pk, pv.pd, cv, pv.baro, 0.0, TrechoInfusao[], false, false)
-solA = integrar(m, u0, (0.0, 6.0); saveat = 0.25, reltol = 1e-10, abstol = 1e-10)
-tau = cv.Rs * cv.Ca
-PA_num = [(u[I_VA] - cv.Va0) / cv.Ca for u in solA.u]
-PA_exa = P0 .* exp.(-solA.t ./ tau)
-errA = maximum(abs.(PA_num .- PA_exa) ./ PA_exa)
-@printf("A. Windkessel (τ = TPR·AC = %.1f s): erro relativo máximo = %.2e\n", tau, errA)
-
-# --- B. PK de Schnider ----------------------------------------------------------
+# --- B. NeoPKPD contra exp(K·t) -----------------------------------------------------
+ref = Paciente(idade = 53, peso = 77, altura = 177, sexo = :M, pas = 125, pad = 75, fc = 70)
+pk = parametros_pk(ref, :schnider)
 D = 2.0 * ref.peso
-u0 = copy(pv.u0); u0[I_A1] = D
-m = ModeloInducao(pv.pk, pv.pd, pv.cv, pv.baro, 0.0, TrechoInfusao[], false, false)
-solB = integrar(m, u0, (0.0, 1200.0); saveat = 10.0, reltol = 1e-8, abstol = 1e-10)
-K = matriz_pk(pv.pk)
-Cp_num = [u[I_A1] / pv.pk.V1 for u in solB.u]
-Cp_exa = [(exp(K * t) * [D, 0, 0])[1] / pv.pk.V1 for t in solB.t]
-errB = maximum(abs.(Cp_num .- Cp_exa) ./ Cp_exa)
-@printf("B. PK Schnider (bolus %.0f mg): erro relativo máximo em Cp = %.2e\n", D, errB)
+r = simular_propofol(ref, [bolus(0.0, D; duracao = 0.0)]; tfim = 20.0)
+K = matriz_pk(pk)
+Cp_exa = [(exp(K * ti) * [D, 0, 0])[1] / pk.V1 for ti in r.t]
+sel = r.t .>= 0.05
+errB = maximum(abs.(r.Cp[sel] .- Cp_exa[sel]) ./ Cp_exa[sel])
+@printf("B. NeoPKPD (Schnider, bolus %.0f mg): erro relativo máximo em Cp = %.2e\n", D, errB)
 
-# --- C. Parada cardíaca → Pms ---------------------------------------------------
-cvC = com(pv.cv; Emax = pv.cv.Emin)
-m = ModeloInducao(pv.pk, pv.pd, cvC, pv.baro, 0.0, TrechoInfusao[], false, false)
-solC = integrar(m, pv.u0, (0.0, 30.0); saveat = 0.05, reltol = 1e-10, abstol = 1e-10)
-alg = [algebrico(u, m, t) for (t, u) in zip(solC.t, solC.u)]
-Pms = pressao_media_enchimento(cvC)
-errC = maximum(abs.([alg[end].Pc, alg[end].Pv, alg[end].Plv] .- Pms))
-@printf("C. Parada cardíaca: Pms teórico = %.3f mmHg; erro máximo após 30 s = %.2e mmHg\n", Pms, errC)
-@printf("   volume total: variação máxima = %.2e ml (conservação de massa)\n",
-        maximum(abs.(volume_total.(solC.u) .- volume_total(pv.u0))))
+# --- C. Windkessel 4 elementos (Stergiopulos 1999) ------------------------------------
+θ, _ = params_stergiopulos1999total()
+tq, pq, q = dados_stergiopulos1999()
+sys4 = G(θ, h)
+x0 = solvex0(sys4, q)
+y4 = simulate_wk(θ, x0, q, h)
+errC = abs(mean(y4) - θ[1] * mean(q)) / (θ[1] * mean(q))
+errP = norm(estado_final(sys4, q, x0) .- x0) / norm(x0)
+@printf("C. Windkessel 4 elementos: |PAM − Rp·Q̄|/PAM = %.2e; periodicidade do estado = %.2e\n", errC, errP)
 
-# --- figura --------------------------------------------------------------------
-pA = plot(solA.t, PA_exa; color = COR.s1, label = "exata  P0·e^(−t/τ)", title = "A. Diástole do Windkessel",
+pA = plot(t, exata; color = COR.s1, label = "exata  P0·e^(−t/τ)", title = "A. Diástole (Windkessel 2 elementos)",
           xlabel = "s", ylabel = "mmHg")
-scatter!(pA, solA.t, PA_num; color = COR.s2, ms = 4, msw = 0, label = "numérica (Tsit5)")
-pB = plot(solB.t ./ 60, Cp_exa; color = COR.s1, label = "exata  exp(K·t)·A0", yscale = :log10,
-          title = "B. Schnider: Cp após bolus", xlabel = "min", ylabel = "µg/ml")
-scatter!(pB, solB.t[1:6:end] ./ 60, Cp_num[1:6:end]; color = COR.s2, ms = 4, msw = 0, label = "numérica")
-pC = plot(solC.t, [a.Pc for a in alg]; color = COR.s1, label = "arterial", title = "C. Parada cardíaca → Pms",
+scatter!(pA, t[1:60:end], y[1:60:end]; color = COR.s2, ms = 4, msw = 0, label = "windkessel-id (G2)")
+pB = plot(r.t, Cp_exa; color = COR.s1, label = "exata  exp(K·t)·A0", yscale = :log10,
+          title = "B. NeoPKPD: Cp após bolus", xlabel = "min", ylabel = "µg/ml")
+scatter!(pB, r.t[sel][1:60:end], r.Cp[sel][1:60:end]; color = COR.s2, ms = 4, msw = 0, label = "NeoPKPD")
+pC = plot(tq, pq; color = COR.s1, label = "medida (Stergiopulos)", title = "C. Windkessel 4 elementos",
           xlabel = "s", ylabel = "mmHg", legend = :topright)
-plot!(pC, solC.t, [a.Pv for a in alg]; color = COR.s2, label = "venosa")
-plot!(pC, solC.t, [a.Plv for a in alg]; color = COR.s3, label = "ventricular")
-hline!(pC, [Pms]; color = COR.muda, ls = :dash, lw = 1.2, label = "")
-annotate!(pC, 30, Pms + 6, text(@sprintf("Pms = %.1f mmHg (eq. 8)", Pms), 8, COR.tinta2, :right))
+plot!(pC, tq, y4; color = COR.s2, label = "modelo (θ publicado)")
 savefig(plot(pA, pB, pC; layout = (1, 3), size = (1150, 380), bottom_margin = 6Plots.mm, left_margin = 6Plots.mm),
         saida("verificacao.png"))
 println("Figura: ", normpath(saida("verificacao.png")))

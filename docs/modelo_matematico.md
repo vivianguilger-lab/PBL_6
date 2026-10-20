@@ -1,227 +1,148 @@
 # Modelo matemático
 
 > **Pergunta:** *como prever, por simulação, a resposta hemodinâmica de um paciente ao propofol?*
->
-> **Resposta proposta:** um paciente virtual (modelo 0-D da circulação em malha fechada)
-> calibrado com os dados pré-indução do próprio paciente, acoplado à farmacocinética de
-> Schnider e a curvas de Hill para cada efeito hemodinâmico do propofol. O modelo prevê a
-> curva de PAM para a dose escolhida **antes** da injeção.
 
-## 1. Visão geral (diagrama de blocos)
+O núcleo do modelo segue o **PropofolPBL** do grupo
+([gabiadamek30-bit/Simula-o-da-resposta-do-paciente-ao-propofol---PBL](https://github.com/gabiadamek30-bit/Simula-o-da-resposta-do-paciente-ao-propofol---PBL)),
+que junta dois repositórios:
 
-```
- dose (mg/kg), tempo de injeção
-            │  u(t) [mg/s]
-            ▼
- ┌─────────────────────┐ Cp  ┌──────────────┐ Ce_bis ──► BIS (hipnose)        ──┐
- │ PK — Schnider       │────►│ compartimento│        ──► ganho do barorreflexo ↓ │
- │ 3 compartimentos    │     │ de efeito    │ Ce_hemo──► TPR ↓ (vasodilatação)   │ curvas de Hill
- └─────────────────────┘     └──────────────┘        ──► Emax ↓ (inotropismo)    │
-                                                     ──► V0 venoso ↑ (venodilat.)┘
-                                                              │
-                                                              ▼
- ┌──────────────────────────────────────────────────────────────────────────────┐
- │ Circulação 0-D em malha fechada: VE (elastância variável) → valva aórtica →  │
- │ Windkessel 3 elementos (Zc, AC, TPR) → veias (VC, V0v) → enchimento → VE      │
- │                ▲                                            │                 │
- │                └──── barorreflexo (FC, TPR, Emax, V0v) ◄────┘ PA sensoriada   │
- └──────────────────────────────────────────────────────────────────────────────┘
-                                │
-                                ▼
-            PAS, PAD, PAM, FC, DC batimento a batimento → métricas de hipotensão
-```
-
-Variáveis de estado (16): massas de propofol nos 3 compartimentos, `Ce_bis`, `Ce_hemo`,
-fase do ciclo cardíaco, volumes do ventrículo, das artérias e das veias, pressão sensoriada
-pelo barorreceptor, 4 ativações dos efetores do barorreflexo e duas integrais auxiliares
-(∫Pao dt e ∫Qao dt, para médias exatas por batimento).
-
-## 2. Farmacocinética — Schnider (1998/1999)
-
-Modelo tricompartimental mamilar, massas `A₁, A₂, A₃` (mg), infusão `u(t)` (mg/s):
-
-```
-dA₁/dt = u(t) − (k₁₀ + k₁₂ + k₁₃)·A₁ + k₂₁·A₂ + k₃₁·A₃
-dA₂/dt = k₁₂·A₁ − k₂₁·A₂
-dA₃/dt = k₁₃·A₁ − k₃₁·A₃
-Cp     = A₁ / V₁                                  (mg/L = µg/ml)
-```
-
-| parâmetro | equação (idade em anos, peso em kg, altura em cm) |
+| origem | uso |
 |---|---|
-| V₁ | 4,27 L |
-| V₂ | 18,9 − 0,391·(idade − 53) L |
-| V₃ | 238 L |
-| Cl₁ | 1,89 + 0,0456·(peso − 77) − 0,0681·(LBM − 59) + 0,0264·(altura − 177) L/min |
-| Cl₂ | 1,29 − 0,024·(idade − 53) L/min |
-| Cl₃ | 0,836 L/min |
-| LBM (James) | ♂ 1,1·peso − 128·(peso/altura)²; ♀ 1,07·peso − 148·(peso/altura)² |
+| [shramish2057/NeoPKPD](https://github.com/shramish2057/NeoPKPD) (pacote Julia registrado) | motor PK/PD: modelo tricompartimental com bolus e infusões, compartimento de efeito (`ke0`) |
+| [hpigot/windkessel-id](https://github.com/hpigot/windkessel-id) (MIT) | Windkessel de 2/3/4 elementos, identificação a partir de pressão/fluxo e dados aórticos |
 
-`k₁₀ = Cl₁/V₁`, `k₁₂ = Cl₂/V₁`, `k₂₁ = Cl₂/V₂`, `k₁₃ = Cl₃/V₁`, `k₃₁ = Cl₃/V₃`.
+Equações, valores padrão e testes do grupo foram mantidos. Sobre essa base, este pacote
+acrescenta: o paciente virtual calibrado também com PAS/PAD, as métricas de hipotensão, a
+janela de dose, a faixa de incerteza, a coorte virtual e a plataforma web.
 
-**Dois compartimentos de efeito.** O propofol age no cérebro (hipnose) mais rápido do que
-nos vasos: Kazama et al. (1999) mediram t½ke0 ≈ 2,3 min para o BIS, mas ≈ 5,7 min (20–39 anos)
-a ≈ 10,2 min (70–85 anos) para a pressão arterial. Por isso:
+## 1. Fluxo
 
 ```
-dCe_bis/dt  = ke0_bis ·(Cp − Ce_bis)     ke0_bis = 0,456 /min (Schnider)
-dCe_hemo/dt = ke0_hemo·(Cp − Ce_hemo)    ke0_hemo = ln2 / t½(idade), t½: 5,7 → 10,2 min (Kazama)
+Paciente ──► PK (Schnider/Marsh, NeoPKPD) ──► Cp(t) ──► ke0 ──► Ce(t) ──► BIS (Eleveld)
+                                                                  │
+  PAM, FC, DC basais ──► θ = [Rp, C, Rc, L] ◄─────────────────────┘ (Emax sigmoide × sensibilidade)
+  PAS − PAD ──► C (paciente virtual)  │
+                                       ▼
+          fluxo aórtico (Stergiopulos) ─► Windkessel de 4 elementos ─► pressão arterial batimento a batimento
 ```
 
-## 3. Farmacodinâmica — equação de Hill
+## 2. Biomarcadores
 
-```
-                    Ceᵞ
-E(Ce) = Emax · ─────────────
-               C50ᵞ + Ceᵞ
-```
-
-| efeito clínico (do problema) | parâmetro do circuito | Emax | C50 (µg/ml) | γ | Ce usada | fonte |
-|---|---|---|---|---|---|---|
-| hipnose | BIS = 97,4·(1 − H) | −100% | 4,47 | 1,43 | Ce_bis | Bouillon 2004 |
-| vasodilatação periférica | TPR × (1 + E) | −77,8% | 3,21 | 1,83 | Ce_hemo | Su 2023 |
-| depressão do miocárdio | Emax do VE × (1 + E) | −15,4%·e^{0,0333(idade−35)} | 0,44 | 1 | Ce_hemo | Su 2023 (efeito no VS, dependente da idade) |
-| venodilatação (↓ Pms) | V0 venoso × (1 + E) | +25% | 2,5 | 1,5 | Ce_hemo | **assumido**, qualitativamente de de Wit 2016 |
-| atenuação do barorreflexo | ganho × (1 + E) | −80% | 2,5 | 2 | Ce_bis | **assumido**, qualitativamente de Cullen 1987 e Ebert 1992 |
-
-Os dois parâmetros **assumidos** foram ajustados (calibração populacional) para que o
-paciente típico (53 anos, 2 mg/kg) reproduza a resposta clássica descrita na literatura de
-anestesiologia: PAM −25 a −40%, DC ≈ −15%, RVS −15 a −25%, FC pouco alterada
-(ver `docs/validacao.md`). Eles são os primeiros candidatos a serem identificados com
-dados reais.
-
-## 4. Circulação — Windkessel em malha fechada
-
-Analogia eletromecânica do curso: pressão ↔ tensão (*across*), fluxo ↔ corrente
-(*through*), resistência ↔ resistor, complacência ↔ capacitor, valva ↔ diodo.
-
-```
-Ventrículo (capacitor variável):  P_VE = E(t)·(V_VE − V_d),   E(t) = E_min + (E_max − E_min)·e(t)
-                                   C_D = 1/E_min (diástole),   C_S = 1/E_max (sístole)
-Ativação (cossenoidal):            e(t) = ½(1 − cos(π t/T_s))           0 ≤ t < T_s
-                                          ½(1 + cos(π (t−T_s)/T_r))     T_s ≤ t < T_s + T_r
-                                          0                              resto do ciclo
-                                   T_s = 0,35·√T, T_r = T_s/2, T = 60/FC
-Artérias (capacitor AC):           P_c = (V_a − V_a0)/AC
-Veias (capacitor VC):              P_v = (V_v − V_v0)/VC
-Enchimento (diodo + R_in):         Q_in = max(P_v − P_VE, 0)/R_in
-Ejeção (diodo + R_av + Z_c):       Q_ao = max(P_VE − P_c, 0)/(R_av + Z_c)
-Pressão na raiz da aorta:          P_ao = P_c + Z_c·Q_ao
-Microcirculação (resistor TPR):    Q_s = (P_c − P_v)/TPR
-
-Conservação de volume (Kirchhoff dos nós):
-dV_VE/dt = Q_in − Q_ao
-dV_a/dt  = Q_ao − Q_s
-dV_v/dt  = Q_s − Q_in
-dφ/dt    = FC/60            (fase do ciclo; φ inteiro = início de um batimento)
-```
-
-Na diástole a valva aórtica está fechada (`Q_ao = 0`) e o compartimento arterial
-descarrega como o **Windkessel de 2 elementos** do curso: `P(t) = P₀·e^{−t/τ}`, `τ = TPR·AC`
-— isso é verificado numericamente (`scripts/01_verificacao.jl`).
-
-Com o coração parado todas as pressões convergem para a **pressão média de enchimento
-sistêmico** (Resumo, eq. 8), que o modelo reproduz exatamente:
-
-```
-Pms = (V_total − V_a0 − V_v0 − V_d) / (AC + VC + C_D)
-```
-
-O coração direito e a circulação pulmonar estão agregados ao ventrículo e a `R_in`
-(topologia de um ventrículo, como em Bjørdalsbakke et al. 2022 /
-`CirculatorySystemModels.jl`).
-
-## 5. Barorreflexo (controle em malha fechada)
-
-```
-dP_s/dt = (P_ao − P_s)/τ_s                         sensor (barorreceptor), τ_s = 2 s
-r       = tanh(−(P_s − P_set)/S)                   aferência normalizada, S = 25 mmHg
-g       = 1 + E_baro(Ce_bis)                       ganho reduzido pelo propofol
-dxᵢ/dt  = (g·r − xᵢ)/τᵢ                            efetores i ∈ {FC, TPR, Emax, V0v}
-
-FC   = FC₀ ·(1 + 0,40·x_FC)      τ = 2 s
-TPR  = TPR₀·(1 + E_TPR)·(1 + 0,35·x_R)    τ = 6 s
-Emax = Emax₀·(1 + E_inot)·(1 + 0,25·x_E)  τ = 8 s
-V0v  = V0v₀·(1 + E_veno)·(1 − 0,08·x_V)   τ = 20 s
-```
-
-`P_set` é a PAM basal do próprio paciente. Ganho de malha aberta ≈ 1,2 bpm/mmHg para a FC
-(faixa fisiológica 0,5–2). Estrutura inspirada em Ursino (1998), simplificada.
-
-| elemento de controle (Resumo, Seção 9.2) | no modelo |
+| biomarcador | uso no modelo |
 |---|---|
-| saída controlada `y` | PAM |
-| sensor | barorreceptor (`P_s`) |
-| setpoint `r` | PAM basal do paciente |
-| controlador | centro vasomotor (tanh + ganho `g`) |
-| atuadores | FC, TPR, contratilidade, tônus venoso |
-| distúrbio `x` | propofol (vasodilatação, inotropismo negativo, venodilatação) |
-| "defeito" causado pelo fármaco | ganho do controlador reduzido |
+| idade, peso, altura, sexo | PK de Schnider (massa magra de James); idade também no Ce50 do BIS |
+| PAM, FC (e DC, se medido) | Windkessel basal: Rp = PAM/DC |
+| PAS, PAD | complacência arterial C do paciente virtual (extensão deste pacote) |
+| ASA, PVI, IVCI, idade | fator de sensibilidade hemodinâmica ao propofol |
+| SpO₂, glicemia | registrados; ainda **não** entram em nenhuma equação |
 
-## 6. Equação de observação (manguito × aorta)
+DC basal, quando não medido: 3,0 L/min/m² × superfície corporal (Mosteller).
 
-O modelo 0-D fornece a pressão **aórtica**. No braço a pressão de pulso é amplificada pela
-reflexão de ondas — fenômeno que um modelo 0-D não reproduz (Resumo, Seção 12.4). A PAM
-praticamente não muda ao longo da árvore arterial. Por isso:
+## 3. Farmacocinética (NeoPKPD)
+
+Modelo tricompartimental (`ThreeCompIVBolus`) com bolus (padrão: 30 s) e infusão de manutenção:
+
+| | Schnider (1998/1999) | Marsh (1991) |
+|---|---|---|
+| V1 | 4,27 L | 0,228·peso |
+| V2 | 18,9 − 0,391·(idade − 53) L | Q2/0,055 |
+| V3 | 238 L | Q3/0,0033 |
+| CL | 1,89 + 0,0456·(peso − 77) − 0,0681·(LBM − 59) + 0,0264·(altura − 177) L/min | 0,119·V1 |
+| Q2 | 1,29 − 0,024·(idade − 53) L/min | 0,112·V1 |
+| Q3 | 0,836 L/min | 0,0419·V1 |
+| ke0 | 0,456 /min | 0,26 /min |
+
+Sítio efetor (`simulate_biophase` do NeoPKPD): dCe/dt = ke0·(Cp − Ce).
+
+**BIS (Eleveld 2018):** BIS = 93 − 93·Ceᵞ/(Ce50ᵞ + Ceᵞ), Ce50 = 3,08·e^{−0,00635(idade−35)} µg/ml,
+γ = 1,47 abaixo de Ce50 e 1,89 acima.
+
+## 4. Windkessel de 4 elementos (windkessel-id)
+
+Forma paralela (Burattini, Westerhof, Stergiopulos), estados x₁ = volume em C e x₂ (ramo indutivo):
 
 ```
-amp(idade)   = 1,25 + 0,45·exp(−(idade − 20)/15)       (≈1,7 aos 20; ≈1,3 aos 50; Anglo-Cardiff)
-PP_braquial  = amp · PP_aórtica
-PAD_braquial = PAM − ff·PP_braquial                     ff = (PAM−PAD)/(PAS−PAD) do manguito
-PAS_braquial = PAD_braquial + PP_braquial
+ẋ = diag(−1/(C·Rp), −Rc/L)·x + [1, Rc]·Q(t)
+P = x₁/C − (Rc/L)·x₂ + Rc·Q(t)
 ```
 
-## 7. Calibração do paciente virtual (grey-box)
+Discretização ZOH analítica (matriz A diagonal), passo h = 5 ms. Propriedades usadas na
+verificação: |Z(0)| = Rp ⇒ **PAM = Rp·Q̄**; |Z(∞)| = Rc. O Windkessel de 3 elementos é o
+caso L → ∞ e o de 2 elementos, L = 0 (com τ = Rp·C, como no Resumo da disciplina).
 
-Entradas: idade, sexo, peso, altura, PAS, PAD, FC (e, se houver, PAM e DC medidos).
+Parâmetros basais (Stergiopulos 1999, humano): C = 1,22 ml/mmHg, Rc = 0,056 mmHg·s/ml,
+L = 0,0051 mmHg·s²/ml; **Rp = PAM / DC** (DC em ml/s).
 
-1. **Tamanho:** volume circulante = 0,85 × volemia de Nadler; elastâncias e volume morto
-   escalados pela superfície corporal (Mosteller).
-2. **Alvos:** PAM, PP aórtica = (PAS − PAD)/amp(idade), DC (medido ou índice cardíaco
-   estimado × superfície corporal), FC medida.
-3. **Primeira estimativa pelas equações do curso:** `TPR ≈ (PAM − Pv)/DC`, `AC ≈ VS/PP`.
-4. **Ajuste de ponto fixo** sobre o modelo pulsátil completo (sem fármaco, sem barorreflexo):
-   - `TPR ← TPR·[(PAM* − Pv)/(PAM − Pv)]/(DC*/DC)`
-   - `AC ← AC·(PP/PP*)^1,2` (se AC satura em 4 ml/mmHg, ajusta-se `Z_c`)
-   - `V0v ← V0v + 0,7·e_DC·V_estressado/(1 + e_DC)` (o volume estressado define Pms e o retorno venoso)
-   até erro < 0,5% em PAM, PP e DC.
-5. O estado de regime permanente vira a condição inicial; `P_set` = PAM obtida.
+**Entrada:** o batimento de fluxo aórtico de Stergiopulos (1999), normalizado e esticado para
+a duração 60/FC, escalado para ejetar o volume sistólico VS.
 
-## 8. Métricas de saída
+## 5. Acoplamento PK/PD → hemodinâmica (grupo)
 
-- PAM basal, **nadir**, tempo até o nadir, queda percentual;
-- tempo com PAM < 65 e < 55 mmHg e área abaixo do limiar (AUT, mmHg·min) nos 20 min;
-- BIS mínimo, tempo até BIS < 60;
-- risco previsto: **ALTO** (qualquer PAM < 55), **MODERADO** (PAM < 65 por ≥ 1 min ou queda > 30%),
-  **BAIXO** (demais).
+A cada batimento, com o Ce daquele instante:
 
-## 9. Classificação do modelo (Resumo, Seções 2, 3 e 7)
+```
+X = X₀ · max(1 − Imax_X · s · Ceᵞ/(Ce50ᵞ + Ceᵞ), 0,05)      X ∈ {Rp, VS, FC}
+```
+
+| parâmetro | valor | significado |
+|---|---|---|
+| Ce50 | 3,0 µg/ml | concentração de meio-efeito |
+| γ | 2,0 | inclinação de Hill |
+| Imax_Rp | 0,25 | vasodilatação arterial |
+| Imax_VS | 0,15 | depressão miocárdica / redução de pré-carga |
+| Imax_FC | 0,05 | redução da FC |
+
+Sensibilidade do paciente:
+
+```
+s = 1 + 0,01·max(idade − 50, 0) + 0,15·max(ASA − 2, 0) + 0,03·max(PVI − 13, 0) + 0,01·max(IVCI − 40, 0)
+```
+
+> Como diz o README do grupo: esses valores são **ilustrativos** (ordem de grandeza da queda
+> de PAM na indução), não ajustados a dados, e precisam ser calibrados.
+
+## 6. Paciente virtual (extensão)
+
+1. Rp = PAM/DC (como no grupo).
+2. **C identificado** por bisseção em log C ∈ [0,2; 6] ml/mmHg para que a pressão de pulso do
+   batimento periódico seja PAS − PAD (a PP cai quando C aumenta). É a mesma ideia de
+   identificação do windkessel-id, com um único parâmetro e uma única medida.
+3. Rc e L ficam nos valores de Stergiopulos. Com a linha arterial do paciente (pressão contínua
+   + estimativa de fluxo), θ inteiro pode ser identificado com `identify`
+   (`scripts/06_identificacao_windkessel.jl`).
+
+## 7. Incerteza e coorte virtual (extensão)
+
+Variabilidade interindividual log-normal: PK com as variâncias de Schnider (V1 0,0404; V2 0,01;
+V3 0,1435; CL 0,1005; Q2 0,01; Q3 0,1179) e ω = 0,3 para ke0; resposta hemodinâmica com
+ω = 0,3 em Ce50 e nos três Imax (assumidos). A previsão individual mantém a hemodinâmica
+basal calibrada e sorteia a farmacologia (200 sorteios) → mediana, faixa de 90% e
+P(PAM < 65), P(PAM < 55).
+
+## 8. Métricas
+
+PAM basal (1 min antes do bolus), PAM mínima e instante, queda (%), tempo com PAM < 65 e
+< 55 mmHg e área abaixo do limiar nos 20 min após o bolus, BIS mínimo e tempo até BIS < 60.
+Risco: **ALTO** (qualquer PAM < 55), **MODERADO** (PAM < 65 por ≥ 1 min ou queda > 30%),
+**BAIXO** (demais).
+
+## 9. Classificação (Resumo, Seções 2, 3 e 7)
 
 | dicotomia | este modelo |
 |---|---|
-| tempo contínuo × discreto | contínuo (EDOs); as saídas são lidas batimento a batimento |
-| linear × não linear | não linear (valvas = diodos, Hill, tanh do barorreflexo) |
-| determinístico × estocástico | determinístico por paciente; estocástico na coorte (IIV log-normal) |
-| tempo-invariante × tempo-variante | tempo-variante (E(t) do ventrículo, efeitos do fármaco) |
+| tempo contínuo × discreto | PK contínua (EDOs no NeoPKPD); Windkessel discretizado (ZOH) batimento a batimento |
+| linear × não linear | Windkessel linear; acoplamento não linear (Hill) |
+| determinístico × estocástico | determinístico por paciente; estocástico na faixa de incerteza e na coorte |
+| tempo-invariante × tempo-variante | tempo-variante (Rp, VS e FC mudam com Ce) |
 | concentrado × distribuído | concentrado (0-D) |
-| black box × grey box | grey box: estrutura física, parâmetros identificados do paciente |
+| black box × grey box | grey box: estrutura física, parâmetros do paciente e da literatura |
 | paramétrico × não paramétrico | paramétrico |
 
-- **Objetivo da modelagem:** preditivo (com componente explicativa — cada parâmetro é um processo fisiológico).
-- **Tipologias de uso:** PARAMETER IDENTIFICATION (calibração), SIMULATION ("e se…?" de doses) e FORECAST (curva prevista).
+## 10. Diferenças em relação ao modelo anterior deste repositório
 
-## 10. Parâmetros cardiovasculares de referência (antes da calibração)
-
-| símbolo | valor | unidade | observação |
-|---|---|---|---|
-| E_max (= 1/C_S) | 2,0 | mmHg/ml | C_S = 0,5 ml/mmHg, valor do Resumo; escala com 1/superfície corporal |
-| E_min (= 1/C_D) | 0,06 | mmHg/ml | C_D ≈ 17 ml/mmHg |
-| V_d | 10 | ml | volume morto |
-| R_in | 0,02 | mmHg·s/ml | enchimento (veias centrais + valva AV) |
-| R_av | 0,005 | mmHg·s/ml | valva aórtica aberta |
-| Z_c | 0,03 | mmHg·s/ml | impedância característica (calibrada se necessário) |
-| AC | 1,5 | ml/mmHg | **calibrada** |
-| TPR | 1,0 | mmHg·s/ml | **calibrada** |
-| VC | 100 | ml/mmHg | valor do Resumo |
-| V_a0 | 16,5% do volume circulante | ml | volume não estressado arterial |
-| V_v0 | — | ml | **calibrado** (define volume estressado e Pms) |
+O modelo anterior (até o commit `d3dd331`) usava um coração de elastância variável em malha
+fechada com barorreflexo e dois compartimentos de efeito. Ele foi substituído pelo modelo do
+grupo, que é aberto: o fluxo aórtico é imposto (Stergiopulos) e o propofol age diretamente
+sobre Rp, VS e FC. Consequências: não há barorreflexo nem retorno venoso explícitos (a queda
+de VS representa tanto depressão miocárdica quanto redução de pré-carga), e o efeito
+hemodinâmico usa o mesmo Ce do BIS (ke0 único).

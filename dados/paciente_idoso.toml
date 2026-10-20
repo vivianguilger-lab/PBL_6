@@ -8,10 +8,15 @@ altura = 168.0
 pas    = 168.0
 pad    = 76.0
 fc     = 64.0
+asa    = 3
+pvi    = 18.0
+ivci   = 45.0
+spo2   = 95.0
+glicemia = 130.0
 
 [protocolo]
 dose_mg_kg           = 1.5
-duracao_bolus_s      = 20.0
-manutencao_ug_kg_min = 0.0
-limiar_pam           = 65.0
+duracao_bolus_s      = 30.0
+manutencao_ug_kg_min = 100.0  # infusão após o bolus (esquema do grupo); 0 = só boluslimiar_pam           = 65.0
+modelo_pk            = "schnider"   # "schnider" ou "marsh"
 alvo_bis             = 60.0

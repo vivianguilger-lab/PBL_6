@@ -20,3 +20,4 @@ for p in ("paciente_exemplo", "paciente_idoso")
 end
 roda("04_coorte_virtual.jl", "500"; threads = "auto")
 roda("05_sensibilidade.jl", joinpath(RAIZ, "dados", "paciente_exemplo.toml"); threads = "auto")
+roda("06_identificacao_windkessel.jl")

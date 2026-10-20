@@ -42,7 +42,7 @@ end
 const DIR_RESULTADOS = _pasta_resultados()
 saida(nome) = joinpath(DIR_RESULTADOS, nome)
 
-minutos(r, t) = (t .- r.t_inducao) ./ 60
+minutos(r, t) = t .- r.t_inducao
 
 """Linhas de limiar de PAM (65 = sério, 55 = crítico) com rótulo direto."""
 function limiares!(p, xmax; limiares = (65.0, 55.0))
@@ -54,91 +54,64 @@ function limiares!(p, xmax; limiares = (65.0, 55.0))
 end
 
 """Painel 3×2 da indução: concentrações, BIS, PA, FC, DC e mecanismos."""
-function fig_inducao(r, pv; titulo = "")
-    b = r.bat
-    x = minutos(r, r.t)
-    xb = minutos(r, b.t)
+function fig_inducao(r; titulo = "")
+    b, k, pv = r.bat, r.pkpd, r.pv
+    x = minutos(r, k.t)
+    xb = minutos(r, b.t_min)
     xl = (minimum(xb), maximum(xb))
-    s = r.sinais
-    # A — concentrações
-    ymax = max(1.4 * maximum(s.Ceb), 6.0)
-    pA = plot(x, min.(s.Cp, ymax); color = COR.s1, label = "Cp (plasma)", title = "A. Propofol (µg/ml)",
+    ymax = max(1.4 * maximum(k.Ce), 6.0)
+    pA = plot(x, min.(k.Cp, ymax); color = COR.s1, label = "Cp (plasma)", title = "A. Propofol (µg/ml) — NeoPKPD",
               ylims = (0, ymax), xlims = xl, legend = :topright)
-    plot!(pA, x, s.Ceb; color = COR.s2, label = "Ce cérebro (BIS)")
-    plot!(pA, x, s.Ceh; color = COR.s3, label = "Ce vascular (PA)")
-    # B — BIS
-    pB = plot(x, s.BIS; color = COR.s1, label = "", title = "B. BIS (hipnose)", ylims = (0, 100), xlims = xl)
+    plot!(pA, x, k.Ce; color = COR.s2, label = "Ce (sítio efetor)")
+    pB = plot(x, k.bis; color = COR.s1, label = "", title = "B. BIS (Eleveld)", ylims = (0, 100), xlims = xl)
     hspan!(pB, [40, 60]; color = COR.muda, alpha = 0.12, label = "")
     annotate!(pB, xl[2], 50, text("alvo 40–60", 7, COR.tinta2, :right))
-    # C — pressão arterial
-    pC = plot(xb, b.PAS; fillrange = b.PAD, fillalpha = 0.15, fillcolor = COR.s1, lw = 0, label = "PAS–PAD",
-              title = "C. Pressão arterial (mmHg)", xlims = xl, legend = :topright,
+    pC = plot(xb, b.PAS; fillrange = b.PAD, fillalpha = 0.15, fillcolor = COR.muda, lw = 0, label = "PAS–PAD",
+              title = "C. Pressão arterial (mmHg) — Windkessel 4 elementos", xlims = xl, legend = :topright,
               ylims = (min(40, minimum(b.PAD) - 5), maximum(b.PAS) + 25))
     plot!(pC, xb, b.PAM; color = COR.s1, label = "PAM")
     limiares!(pC, xl[2])
-    # D — FC
     pD = plot(xb, b.FC; color = COR.s1, label = "", title = "D. Frequência cardíaca (bpm)", xlims = xl,
-              ylims = (minimum(b.FC) - 8, maximum(b.FC) + 8))
-    # E — DC
+              ylims = (minimum(b.FC) - 5, maximum(b.FC) + 5))
     pE = plot(xb, b.DC; color = COR.s1, label = "", title = "E. Débito cardíaco (L/min)", xlims = xl,
               ylims = (0, maximum(b.DC) * 1.15), xlabel = "minutos após o início do bolus")
-    # F — mecanismos (% do basal)
-    cv = pv.cv
-    Vest(Vv0) = cv.Vtotal - cv.Va0 - Vv0 - cv.Vd
-    pF = plot(x, 100 .* (s.Rs ./ cv.Rs .- 1); color = COR.s1, label = "TPR (vasodilatação)",
-              title = "F. Mecanismos (% do basal)", xlims = xl, legend = :bottomright,
+    vs0, Rp0, fc0 = pv.obtido.VS, pv.θ[1], pv.paciente.fc
+    pF = plot(xb, 100 .* (b.Rp ./ Rp0 .- 1); color = COR.s1, label = "Rp (vasodilatação)",
+              title = "F. Efeitos do propofol (% do basal)", xlims = xl, legend = :bottomright,
               xlabel = "minutos após o início do bolus")
-    plot!(pF, x, 100 .* (s.Emax ./ cv.Emax .- 1); color = COR.s2, label = "Emax = 1/C_S (contratilidade)")
-    plot!(pF, x, 100 .* (Vest.(s.Vv0) ./ Vest(cv.Vv0) .- 1); color = COR.s3, label = "volume estressado (venodilatação)")
+    plot!(pF, xb, 100 .* (b.VS ./ vs0 .- 1); color = COR.s2, label = "volume sistólico")
+    plot!(pF, xb, 100 .* (b.FC ./ fc0 .- 1); color = COR.s3, label = "frequência cardíaca")
     hline!(pF, [0]; color = COR.eixo, lw = 1, label = "")
-    f = plot(pA, pB, pC, pD, pE, pF; layout = (3, 2), size = (1100, 950),
-             plot_title = titulo, plot_titlefontsize = 11)
-    return f
+    return plot(pA, pB, pC, pD, pE, pF; layout = (3, 2), size = (1100, 950), plot_title = titulo, plot_titlefontsize = 11)
 end
 
-"""Ondas de pressão e laço pressão–volume: basal × nadir."""
-function fig_ondas(r, mt)
-    s = r.sinais
-    t0 = r.t_inducao
-    tn = t0 + 60 * mt.t_nadir
-    T = 60 / mt.fc_basal
-    jb = findall(t -> t0 - 3T <= t < t0, r.t)
-    Tn = 60 / mt.fc_no_nadir
-    jn = findall(t -> tn - 1.5Tn <= t < tn + 1.5Tn, r.t)
-    ymax = maximum(s.Plv[jb]) + 10
-    pA = plot(r.t[jb] .- r.t[jb[1]], s.Pao[jb]; color = COR.s1, label = "aorta", title = "A. Basal",
-              ylims = (0, ymax), xlabel = "s", ylabel = "mmHg", legend = :topright)
-    plot!(pA, r.t[jb] .- r.t[jb[1]], s.Plv[jb]; color = COR.s2, label = "ventrículo")
-    pB = plot(r.t[jn] .- r.t[jn[1]], s.Pao[jn]; color = COR.s1, label = "aorta",
-              title = @sprintf("B. No nadir (%.1f min)", mt.t_nadir), ylims = (0, ymax), xlabel = "s", legend = :topright)
-    plot!(pB, r.t[jn] .- r.t[jn[1]], s.Plv[jn]; color = COR.s2, label = "ventrículo")
-    pC = plot(s.Vlv[jb], s.Plv[jb]; color = COR.s1, label = "basal", title = "C. Laço pressão–volume",
-              xlabel = "volume do ventrículo (ml)", ylabel = "mmHg", legend = :topleft)
-    plot!(pC, s.Vlv[jn], s.Plv[jn]; color = COR.s2, label = "nadir")
-    return plot(pA, pB, pC; layout = (1, 3), size = (1150, 380), bottom_margin = 6Plots.mm,
-                left_margin = 6Plots.mm)
+"""Pressão e fluxo aórticos (Windkessel 4 elementos): batimentos basais × no nadir."""
+function fig_onda(r, mt)
+    o = r.onda
+    t0 = 60 * r.t_inducao
+    tn = 60 * (r.t_inducao + mt.t_nadir)
+    jb = findall(t -> t0 - 3 * 60 / mt.fc_basal <= t < t0, o.t_s)
+    jn = findall(t -> tn - 1.5 * 60 / mt.fc_no_nadir <= t < tn + 1.5 * 60 / mt.fc_no_nadir, o.t_s)
+    ymax = maximum(o.pressao[jb]) + 10
+    pA = plot(o.t_s[jb] .- o.t_s[jb[1]], o.pressao[jb]; color = COR.s1, label = "basal", title = "A. Pressão arterial",
+              xlabel = "s", ylabel = "mmHg", ylims = (max(0, min(minimum(o.pressao[jb]), minimum(o.pressao[jn])) - 5), ymax), legend = :topright)
+    plot!(pA, o.t_s[jn] .- o.t_s[jn[1]], o.pressao[jn]; color = COR.s2, label = @sprintf("nadir (%.1f min)", mt.t_nadir))
+    pB = plot(o.t_s[jb] .- o.t_s[jb[1]], o.fluxo[jb]; color = COR.s1, label = "basal", title = "B. Fluxo aórtico (Stergiopulos 1999)",
+              xlabel = "s", ylabel = "ml/s", legend = :topright)
+    plot!(pB, o.t_s[jn] .- o.t_s[jn[1]], o.fluxo[jn]; color = COR.s2, label = "nadir")
+    return plot(pA, pB; layout = (1, 2), size = (1100, 380), bottom_margin = 6Plots.mm, left_margin = 6Plots.mm)
 end
 
-"""Diagrama de Guyton (curso, Seção 16): basal × nadir do propofol."""
-function fig_guyton(pv, r, mt)
-    cv = pv.cv
-    s = r.sinais
-    i = argmin(abs.(r.t .- (r.t_inducao + 60 * mt.t_nadir)))
-    g0 = estado_guyton(cv; Pa = mt.pam_basal)
-    g1 = estado_guyton(cv; FC = s.FC[i], Rs = s.Rs[i], Emax = s.Emax[i], Vv0 = s.Vv0[i], Pa = mt.pam_nadir)
-    rap = range(-2, max(g0.Pms, g1.Pms) + 1; length = 200)
-    p = plot(; title = "Ponto de funcionamento: retorno venoso × débito cardíaco",
-             xlabel = "pressão de enchimento — RAP (mmHg)", ylabel = "fluxo (L/min)", legend = :topright,
-             size = (800, 520), ylims = (0, 1.6 * max(g0.Q, g1.Q)))
-    for (k, (g, c, nome)) in enumerate(((g0, COR.s1, "basal"), (g1, COR.s2, "propofol (nadir)")))
-        plot!(p, rap, retorno_venoso.(rap, g.Pms, g.RVR); color = c, label = "retorno venoso — " * nome)
-        plot!(p, rap, debito_cardiaco_curso.(rap, g.FC, g.CD, g.CS, g.Pa); color = c, lw = 1.2,
-              label = "curva cardíaca — " * nome)
-        scatter!(p, [g.RAP], [g.Q]; color = c, ms = 6, msw = 2, msc = COR.fundo, label = "")
-        annotate!(p, g.RAP + 0.4, g.Q, text(@sprintf("%.1f L/min", g.Q), 8, COR.tinta, :left))
-        annotate!(p, g.Pms, (0.06 + 0.07 * k) * max(g0.Q, g1.Q), text(@sprintf("Pms %.1f", g.Pms), 7, COR.tinta2, :center))
-    end
-    return p, g0, g1
+"""Curva de PAM prevista com faixa de incerteza (5–95%)."""
+function fig_incerteza(inc, r; titulo = "")
+    p = plot(inc.t, inc.p95; fillrange = inc.p05, fillalpha = 0.18, fillcolor = COR.s1, lw = 0,
+             label = "faixa 90% (PK/PD sorteadas)", title = titulo, xlabel = "minutos após o início do bolus",
+             ylabel = "PAM (mmHg)", legend = :topright, size = (850, 450),
+             ylims = (min(40, minimum(inc.p05) - 5), maximum(inc.p95) + 15))
+    plot!(p, inc.t, inc.mediana; color = COR.s1, label = "mediana")
+    plot!(p, minutos(r, r.bat.t_min), r.bat.PAM; color = COR.s2, lw = 1.2, label = "paciente típico (parâmetros médios)")
+    limiares!(p, maximum(inc.t))
+    return p
 end
 
 """Varredura de dose: nadir de PAM e BIS mínimo × dose."""
@@ -166,14 +139,3 @@ function fig_doses(tab, jan; titulo = "")
                 plot_titlefontsize = 11, bottom_margin = 6Plots.mm)
 end
 
-"""Curva de PAM prevista com faixa de incerteza farmacológica (5–95%)."""
-function fig_incerteza(inc, r; titulo = "")
-    p = plot(inc.t, inc.p95; fillrange = inc.p05, fillalpha = 0.18, fillcolor = COR.s1, lw = 0,
-             label = "faixa 90% (PK/PD sorteadas)", title = titulo, xlabel = "minutos após o início do bolus",
-             ylabel = "PAM (mmHg)", legend = :topright, size = (850, 450),
-             ylims = (min(40, minimum(inc.p05) - 5), maximum(inc.p95) + 15))
-    plot!(p, inc.t, inc.mediana; color = COR.s1, label = "mediana")
-    plot!(p, minutos(r, r.bat.t), r.bat.PAM; color = COR.s2, lw = 1.2, label = "paciente típico (parâmetros médios)")
-    limiares!(p, maximum(inc.t))
-    return p
-end

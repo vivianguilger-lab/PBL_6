@@ -1,24 +1,23 @@
-Paciente C - 81 anos, hipertensão sistólica isolada: 81 anos, masc., 64 kg, 168 cm | PA 168/76 (PAM 107) mmHg | FC 64 bpm | DC 4.82 L/min (estimado)
+Paciente C - 81 anos, hipertensão sistólica isolada: 81 anos, masc., 64 kg, 168 cm, ASA 3 | PA 168/76 (PAM 107) mmHg | FC 64 bpm | DC 5.18 L/min (estimado) | PVI 18%, IVCI 45%
 
- dose    mg    PAM nadir  queda   t nadir  PAM<65  PAM<55  BIS mín  risco
- 0.50     32     94.8      11%    2.9 min   0.0     0.0       71    BAIXO
- 0.75     48     87.2      18%    2.9 min   0.0     0.0       59    BAIXO
- 1.00     64     79.5      26%    3.0 min   0.0     0.0       49    BAIXO
- 1.25     80     72.5      32%    3.1 min   0.0     0.0       42    MODERADO
- 1.50     96     66.6      38%    3.3 min   0.0     0.0       35    MODERADO
- 1.75    112     61.6      42%    3.4 min   3.2     0.0       31    MODERADO
- 2.00    128     57.3      46%    3.5 min   4.9     0.0       27    MODERADO
- 2.25    144     53.7      50%    3.5 min   6.2     2.1       24    ALTO
- 2.50    160     50.6      53%    3.6 min   7.3     4.1       21    ALTO
- 2.75    176     47.9      55%    3.6 min   8.4     5.3       19    ALTO
- 3.00    192     45.6      57%    3.7 min   9.4     6.3       17    ALTO
+ dose    mg    PAM mín.  queda   t mín.   PAM<65  PAM<55  BIS mín  risco
+ 0.50     32     74.6      30%    3.5 min   0.0     0.0       40    BAIXO
+ 0.75     48     65.0      39%    2.7 min   0.2     0.0       27    MODERADO
+ 1.00     64     58.3      45%    2.5 min   4.2     0.0       19    MODERADO
+ 1.25     80     53.8      49%    2.4 min   5.5     1.6       14    ALTO
+ 1.50     96     51.0      52%    2.3 min   6.5     3.2       10    ALTO
+ 1.75    112     49.3      54%    2.2 min   7.3     4.1        8    ALTO
+ 2.00    128     47.8      55%    2.2 min   7.9     4.8        6    ALTO
+ 2.25    144     47.0      56%    2.2 min   8.5     5.4        5    ALTO
+ 2.50    160     46.3      56%    2.2 min   9.0     5.8        4    ALTO
+ 2.75    176     45.8      57%    2.2 min   9.6     6.2        4    ALTO
+ 3.00    192     45.2      57%    2.2 min  10.0     6.6        3    ALTO
 
-Janela individual (bolus em 20 s): 0.73 a 1.58 mg/kg  (47 a 101 mg)
-  → hipnose (BIS < 60) a partir de 0.73 mg/kg; PAM ≥ 65 mmHg até 1.58 mg/kg
+Janela individual (bolus em 30 s): 0.50 a 0.75 mg/kg  (32 a 48 mg)
 
-Efeito da velocidade de injeção (mesma dose do protocolo = 1.5 mg/kg):
-  bolus em  10 s: PAM nadir 66.6 mmHg (3.1 min), BIS mín 35, PAM<65 por 0.0 min
-  bolus em  60 s: PAM nadir 66.7 mmHg (3.6 min), BIS mín 36, PAM<65 por 0.0 min
-  bolus em 120 s: PAM nadir 67.0 mmHg (4.2 min), BIS mín 37, PAM<65 por 0.0 min
+Velocidade de injeção (1.5 mg/kg):
+  bolus em  10 s: PAM mínima 51.1 mmHg (2.1 min), BIS mín 11
+  bolus em  60 s: PAM mínima 50.9 mmHg (2.6 min), BIS mín 10
+  bolus em 120 s: PAM mínima 50.8 mmHg (3.2 min), BIS mín 10
 
 Figuras em: /home/user/PBL_6/resultados

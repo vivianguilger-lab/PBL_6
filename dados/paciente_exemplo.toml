@@ -15,10 +15,16 @@ pad    = 82.0        # mmHg (pressão diastólica pré-indução)
 fc     = 78.0        # bpm
 # pam  = 104.0       # opcional: PAM medida (senão PAD + (PAS-PAD)/3)
 # dc   = 4.8         # opcional: débito cardíaco medido em L/min (senão estimado)
+asa      = 2         # classificação ASA (1 a 5)
+pvi      = 12.0      # pleth variability index (%)
+ivci     = 25.0      # índice de colapsabilidade da veia cava inferior (%)
+spo2     = 97.0      # % (registrada; ainda não entra no modelo)
+glicemia = 110.0     # mg/dL (registrada; ainda não entra no modelo)
 
 [protocolo]
 dose_mg_kg           = 1.5    # dose de indução que se pretende usar
-duracao_bolus_s      = 20.0   # tempo de injeção do bolus
-manutencao_ug_kg_min = 0.0    # infusão contínua após o bolus (TIVA); 0 = só bolus
+duracao_bolus_s      = 30.0   # tempo de injeção do bolus
+manutencao_ug_kg_min = 100.0  # infusão após o bolus (esquema do grupo); 0 = só bolus
 limiar_pam           = 65.0   # limiar de hipotensão usado na janela de dose
+modelo_pk            = "schnider"   # "schnider" ou "marsh"
 alvo_bis             = 60.0   # hipnose adequada: BIS abaixo deste valor

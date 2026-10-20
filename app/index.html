@@ -201,8 +201,21 @@ dl.params dt { color: var(--ink-2); } dl.params dd { margin: 0; font-weight: 600
           <label class="f">PAM (opcional)<div class="inp"><input id="pam" type="number" inputmode="decimal" placeholder="calculada"><span class="u">mmHg</span></div></label>
         </div>
         <details class="opt"><summary>Débito cardíaco medido (opcional)</summary>
-          <label class="f">DC<div class="inp"><input id="dc" type="number" inputmode="decimal" step="0.1" placeholder="estimado pela idade e superfície corporal"><span class="u">L/min</span></div></label>
+          <label class="f">DC<div class="inp"><input id="dc" type="number" inputmode="decimal" step="0.1" placeholder="estimado: 3,0 L/min/m² × sup. corporal"><span class="u">L/min</span></div></label>
         </details>
+      </fieldset>
+      <fieldset>
+        <legend>Risco e volemia</legend>
+        <div class="grid2">
+          <label class="f">ASA<div class="inp"><select id="asa">
+            <option value="1">ASA I</option><option value="2" selected>ASA II</option><option value="3">ASA III</option>
+            <option value="4">ASA IV</option><option value="5">ASA V</option></select></div></label>
+          <label class="f">PVI<div class="inp"><input id="pvi" type="number" inputmode="decimal" min="0" max="60" value="10"><span class="u">%</span></div></label>
+          <label class="f">IVCI (veia cava)<div class="inp"><input id="ivci" type="number" inputmode="decimal" min="0" max="100" value="20"><span class="u">%</span></div></label>
+          <label class="f">SpO₂<div class="inp"><input id="spo2" type="number" inputmode="decimal" min="70" max="100" value="98"><span class="u">%</span></div></label>
+        </div>
+        <label class="f" style="margin-top:10px">Glicemia<div class="inp"><input id="glicemia" type="number" inputmode="decimal" min="40" max="500" value="95"><span class="u">mg/dL</span></div></label>
+        <div class="dose-total" style="margin-top:6px">Idade &gt; 50, ASA ≥ III, PVI &gt; 13% e IVCI &gt; 40% aumentam a sensibilidade ao propofol. SpO₂ e glicemia são registradas, mas ainda não entram no modelo.</div>
       </fieldset>
       <fieldset>
         <legend>Protocolo de indução</legend>
@@ -214,10 +227,12 @@ dl.params dt { color: var(--ink-2); } dl.params dd { margin: 0; font-weight: 600
         <div class="dose-total" id="doseTotal"></div>
         <div class="grid2" style="margin-top:10px">
           <label class="f">Tempo de injeção<div class="inp"><select id="dur">
-            <option value="10">10 s</option><option value="20" selected>20 s</option><option value="30">30 s</option>
+            <option value="10">10 s</option><option value="20">20 s</option><option value="30" selected>30 s</option>
             <option value="60">1 min</option><option value="120">2 min</option></select></div></label>
-          <label class="f">Manutenção<div class="inp"><input id="manut" type="number" min="0" max="300" step="10" value="0"><span class="u">µg/kg/min</span></div></label>
+          <label class="f">Manutenção<div class="inp"><input id="manut" type="number" min="0" max="300" step="10" value="100"><span class="u">µg/kg/min</span></div></label>
         </div>
+        <label class="f" style="margin-top:10px">Modelo farmacocinético<div class="inp"><select id="modelo">
+          <option value="schnider" selected>Schnider</option><option value="marsh">Marsh</option></select></div></label>
       </fieldset>
       <button class="btn" id="btn" type="submit"><span id="btnTxt">Simular</span></button>
       <div class="err" id="err" role="alert"></div>
@@ -235,6 +250,7 @@ dl.params dt { color: var(--ink-2); } dl.params dd { margin: 0; font-weight: 600
       <h2>Preencha os dados do monitor e clique em Simular</h2>
       <p>O simulador cria um paciente virtual com a hemodinâmica deste paciente e prevê a curva de pressão
         para a dose escolhida — antes da injeção.</p>
+      <p style="font-size:13px">Modelo: NeoPKPD (PK/PD) + Windkessel de 4 elementos (windkessel-id), como no PropofolPBL do grupo.</p>
     </section>
 
     <div id="res" class="hidden" style="display:flex;flex-direction:column;gap:16px">
@@ -267,7 +283,7 @@ dl.params dt { color: var(--ink-2); } dl.params dd { margin: 0; font-weight: 600
         <section class="card"><div class="hd"><h2>Frequência cardíaca</h2><span class="hint">bpm</span></div><div class="bd"><div class="chart" id="chFC"></div></div></section>
         <section class="card"><div class="hd"><h2>Débito cardíaco</h2><span class="hint">L/min</span></div><div class="bd"><div class="chart" id="chDC"></div></div></section>
         <section class="card"><div class="hd"><h2>Profundidade anestésica (BIS)</h2><span class="hint">faixa-alvo 40–60</span></div><div class="bd"><div class="chart" id="chBIS"></div></div></section>
-        <section class="card"><div class="hd"><h2>Concentração de propofol</h2><span class="hint">µg/ml</span></div><div class="bd"><div class="legend" id="legCE"></div><div class="chart" id="chCE"></div></div></section>
+        <section class="card"><div class="hd"><h2>Concentração de propofol</h2><span class="hint">µg/ml · NeoPKPD</span></div><div class="bd"><div class="legend" id="legCE"></div><div class="chart" id="chCE"></div></div></section>
       </div>
 
       <section class="card">
@@ -286,7 +302,7 @@ dl.params dt { color: var(--ink-2); } dl.params dd { margin: 0; font-weight: 600
       </section>
 
       <section class="card">
-        <div class="hd"><h2>Por que a pressão cai?</h2><span class="hint">os três efeitos do propofol no paciente virtual</span></div>
+        <div class="hd"><h2>Por que a pressão cai?</h2><span class="hint">os três efeitos do propofol no modelo (Emax sigmoide sobre Rp, VS e FC)</span></div>
         <div class="bd">
           <div class="mech" id="mech"></div>
           <div class="legend" id="legMec"></div>
@@ -305,10 +321,11 @@ dl.params dt { color: var(--ink-2); } dl.params dd { margin: 0; font-weight: 600
             <button class="icon-btn" id="print">Imprimir / salvar PDF</button>
             <button class="icon-btn" id="csv">Baixar curva (CSV)</button>
           </div>
-          <p class="disclaimer"><b>Uso educacional e de pesquisa.</b> Modelo PK/PD (Schnider + Hill) acoplado a um
-            Windkessel em malha fechada, calibrado com os dados acima. Ainda não validado com dados de pacientes;
-            não considera opioides, laringoscopia, fluidos ou vasopressores. As chances de hipotensão refletem a
-            variabilidade farmacológica entre pacientes. A decisão clínica é sempre do anestesiologista.</p>
+          <p class="disclaimer"><b>Uso educacional e de pesquisa.</b> PK/PD do propofol pelo NeoPKPD (Schnider ou Marsh,
+            BIS de Eleveld) acoplada a um Windkessel de 4 elementos (windkessel-id, Stergiopulos 1999), seguindo o modelo
+            PropofolPBL do grupo. Os parâmetros do efeito hemodinâmico e da sensibilidade são ilustrativos e ainda não foram
+            ajustados nem validados com dados de pacientes; o modelo não considera opioides, laringoscopia, fluidos ou
+            vasopressores. A decisão clínica é sempre do anestesiologista.</p>
         </div>
       </section>
     </div>
@@ -352,13 +369,13 @@ $("peso").oninput = atualizaDose;
 atualizaDose();
 
 const EXEMPLOS = [
-  { idade: 62, sexo: "F", peso: 72, altura: 160, pas: 148, pad: 82, fc: 78, dose: 1.5 },
-  { idade: 28, sexo: "M", peso: 80, altura: 180, pas: 124, pad: 72, fc: 74, dose: 2.0 },
-  { idade: 81, sexo: "M", peso: 64, altura: 168, pas: 168, pad: 76, fc: 64, dose: 1.5 },
+  { idade: 62, sexo: "F", peso: 72, altura: 160, pas: 148, pad: 82, fc: 78, asa: 2, pvi: 12, ivci: 25, dose: 1.5 },
+  { idade: 28, sexo: "M", peso: 80, altura: 180, pas: 124, pad: 72, fc: 74, asa: 1, pvi: 9, ivci: 15, dose: 2.0 },
+  { idade: 81, sexo: "M", peso: 64, altura: 168, pas: 168, pad: 76, fc: 64, asa: 3, pvi: 18, ivci: 45, dose: 1.5 },
 ];
 document.querySelectorAll("[data-ex]").forEach(b => b.onclick = () => {
   const e = EXEMPLOS[+b.dataset.ex];
-  for (const k of ["idade", "peso", "altura", "pas", "pad", "fc"]) $(k).value = e[k];
+  for (const k of ["idade", "peso", "altura", "pas", "pad", "fc", "asa", "pvi", "ivci"]) $(k).value = e[k];
   $("pam").value = ""; $("dc").value = ""; $("dose").value = $("doseR").value = e.dose;
   setSexo(e.sexo); atualizaDose(); simular();
 });
@@ -369,7 +386,9 @@ function coletar() {
   for (const k in p) if (p[k] === "") throw new Error("Preencha todos os campos do paciente e do monitor.");
   if (v("pam")) p.pam = v("pam");
   if (v("dc")) p.dc = v("dc");
-  return { paciente: p, protocolo: { dose_mgkg: v("dose"), duracao_bolus_s: v("dur"), manutencao_ugkgmin: v("manut") || 0 } };
+  for (const k of ["asa", "pvi", "ivci", "spo2", "glicemia"]) if (v(k)) p[k] = v(k);
+  return { paciente: p, protocolo: { dose_mgkg: v("dose"), duracao_bolus_s: v("dur"), manutencao_ugkgmin: v("manut") || 0,
+                                     modelo_pk: v("modelo") } };
 }
 
 async function post(url, corpo) {
@@ -401,7 +420,7 @@ async function simular() {
   finally { if (meu === pedido) { $("btn").disabled = false; $("btnTxt").textContent = "Simular"; } }
   if (meu !== pedido || !ultimo) return;
   try { const d = await post("/api/doses", corpo); if (meu === pedido) { doses = d; renderDoses(); } } catch (e) {}
-  try { const i = await post("/api/incerteza", { ...corpo, n: 50 }); if (meu === pedido) { inc = i; renderTudo(); } } catch (e) {}
+  try { const i = await post("/api/incerteza", { ...corpo, n: 100 }); if (meu === pedido) { inc = i; renderTudo(); } } catch (e) {}
 }
 function mostraErro(m) { $("err").textContent = m; $("err").style.display = "block"; }
 
@@ -556,39 +575,38 @@ function renderTudo() {
   chart($("chDC"), { xMin: b.t[0], xMax: xmax, xTip: minTip, zero: true, yDec: 1, series: [{ x: b.t, y: b.dc, color: S1, label: "DC", unit: "L/min", dec: 2 }] });
   chart($("chBIS"), { xMin: s.t[0], xMax: xmax, xTip: minTip, yMin: 0, yMax: 100, hbands: [{ y0: 40, y1: 60, color: css("--muted"), op: .14 }],
     series: [{ x: s.t, y: s.bis, color: S1, label: "BIS" }] });
-  const ceMax = Math.max(6, 1.4 * Math.max(...s.ceb));
-  legenda($("legCE"), [{ cor: S1, txt: "plasma" }, { cor: S2, txt: "cérebro (hipnose)" }, { cor: S3, txt: "vasos (pressão)" }]);
+  const ceMax = Math.max(6, 1.4 * Math.max(...s.ce));
+  legenda($("legCE"), [{ cor: S1, txt: "plasma (Cp)" }, { cor: S2, txt: "sítio efetor (Ce)" }]);
   chart($("chCE"), { xMin: s.t[0], xMax: xmax, xTip: minTip, yMin: 0, yMax: ceMax, yDec: 0,
-    series: [{ x: s.t, y: s.cp.map(c => Math.min(c, ceMax)), color: S1, label: "plasma", unit: "µg/ml", dec: 1 },
-             { x: s.t, y: s.ceb, color: S2, label: "cérebro", unit: "µg/ml", dec: 1 },
-             { x: s.t, y: s.ceh, color: S3, label: "vasos", unit: "µg/ml", dec: 1 }] });
+    series: [{ x: s.t, y: s.cp.map(c => Math.min(c, ceMax)), color: S1, label: "Cp", unit: "µg/ml", dec: 1 },
+             { x: s.t, y: s.ce, color: S2, label: "Ce", unit: "µg/ml", dec: 1 }] });
   // mecanismos
   $("mech").innerHTML = [
-    ["Vasodilatação", "resistência vascular", mt.tpr_nadir_pct, S1],
-    ["Depressão miocárdica", "contratilidade", mt.contr_nadir_pct, S2],
-    ["Venodilatação", "volume que enche o coração", mt.vest_nadir_pct, S3]].map(([t, d, p, c]) =>
+    ["Vasodilatação", "resistência periférica (Rp)", mt.rp_nadir_pct, S1],
+    ["Depressão miocárdica / pré-carga", "volume sistólico", mt.vs_nadir_pct, S2],
+    ["Cronotropismo", "frequência cardíaca", mt.fc_nadir_pct, S3]].map(([t, d, p, c]) =>
     `<div><div class="k"><span class="sw" style="background:${c}"></span>${t}</div><div class="v">${p > 0 ? "+" : ""}${fmt(p)}%</div><div class="d">${d}, no momento da PAM mínima</div></div>`).join("");
-  legenda($("legMec"), [{ cor: S1, txt: "resistência vascular" }, { cor: S2, txt: "contratilidade" }, { cor: S3, txt: "volume estressado" }]);
-  chart($("chMec"), { xMin: s.t[0], xMax: xmax, xTip: minTip, xLabel: "minutos após o início do bolus",
+  legenda($("legMec"), [{ cor: S1, txt: "resistência periférica" }, { cor: S2, txt: "volume sistólico" }, { cor: S3, txt: "frequência cardíaca" }]);
+  chart($("chMec"), { xMin: b.t[0], xMax: xmax, xTip: minTip, xLabel: "minutos após o início do bolus",
     hlines: [{ y: 0, color: css("--axis") }],
-    series: [{ x: s.t, y: s.tpr, color: S1, label: "resistência", unit: "%" },
-             { x: s.t, y: s.contr, color: S2, label: "contratilidade", unit: "%" },
-             { x: s.t, y: s.vest, color: S3, label: "volume estressado", unit: "%" }] });
+    series: [{ x: b.t, y: b.rp, color: S1, label: "resistência", unit: "%" },
+             { x: b.t, y: b.vs, color: S2, label: "volume sistólico", unit: "%" },
+             { x: b.t, y: b.fcp, color: S3, label: "FC", unit: "%" }] });
   // paciente virtual
-  const P = [["PA reproduzida", `${fmt(v.pas)}/${fmt(v.pad)} (PAM ${fmt(v.pam)})`],
-    ["PA na aorta", `${fmt(v.pas_aorta)}/${fmt(v.pad_aorta)} mmHg`],
+  const P = [["PA do modelo", `${fmt(v.pas)}/${fmt(v.pad)} (PAM ${fmt(v.pam)}) mmHg`],
     ["Débito cardíaco", `${fmt(v.dc, 2)} L/min${v.dc_estimado ? " (estimado)" : ""}`],
     ["Volume sistólico", `${fmt(v.vs)} ml`],
-    ["Resistência periférica (TPR)", `${fmt(v.tpr, 3)} mmHg·s/ml`],
-    ["Complacência arterial (AC)", `${fmt(v.ac, 2)} ml/mmHg`],
-    ["Constante τ = TPR·AC", `${fmt(v.tau, 2)} s`],
-    ["C sistólica / diastólica", `${fmt(v.cs, 2)} / ${fmt(v.cd, 1)} ml/mmHg`],
-    ["Pressão média de enchimento", `${fmt(v.pms, 1)} mmHg`],
-    ["Volume circulante", `${fmt(v.volume)} ml`],
-    ["Massa magra / sup. corporal", `${fmt(v.lbm, 1)} kg / ${fmt(v.bsa, 2)} m²`],
-    ["Schnider V1 / V2 / Cl1", `${fmt(v.v1, 2)} L / ${fmt(v.v2, 1)} L / ${fmt(v.cl1, 2)} L/min`],
-    ["Equilíbrio vascular (t½)", `${fmt(v.t12_vascular, 1)} min`],
-    ["Calibração", v.convergiu ? "convergiu" : "não convergiu — interpretar com cautela"]];
+    ["Rp (resistência periférica)", `${fmt(v.rp, 3)} mmHg·s/ml`],
+    ["C (complacência arterial)", `${fmt(v.c, 2)} ml/mmHg`],
+    ["Rc (impedância característica)", `${fmt(v.rc, 3)} mmHg·s/ml`],
+    ["L (inertância)", `${fmt(v.l, 4)} mmHg·s²/ml`],
+    ["Constante τ = Rp·C", `${fmt(v.tau, 2)} s`],
+    ["Sensibilidade ao propofol (s)", `${fmt(v.s, 2)}×`],
+    ["IMC / massa magra", `${fmt(v.imc, 1)} kg/m² / ${fmt(v.lbm, 1)} kg`],
+    [`PK ${v.modelo_pk}: CL / V1 / V2 / V3`, `${fmt(v.cl, 2)} / ${fmt(v.v1, 2)} / ${fmt(v.v2, 1)} / ${fmt(v.v3)}`],
+    ["ke0 (sítio efetor)", `${fmt(v.ke0, 3)} /min`],
+    ["Ce50 do BIS (Eleveld, idade)", `${fmt(v.ce50_bis, 2)} µg/ml`],
+    ["Calibração", v.convergiu ? "PAM e pressão de pulso reproduzidas" : "pressão de pulso não atingida — interpretar com cautela"]];
   $("params").innerHTML = P.map(([k, x]) => `<div><dt>${k}</dt><dd>${x}</dd></div>`).join("");
   if (doses) renderDoses();
 }

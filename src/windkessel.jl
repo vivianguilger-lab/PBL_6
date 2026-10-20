@@ -1,233 +1,216 @@
-# =============================================================================
-# windkessel.jl — circulação em malha fechada (modelo 0-D, parâmetros concentrados)
-# =============================================================================
+# Identificação de modelos Windkessel (2, 3 e 4 elementos).
+# Porta para Julia moderno de oeid.jl do windkessel-id (Pigot et al., licença MIT,
+# github.com/hpigot/windkessel-id), feita pelo grupo em src/windkessel.jl do
+# PropofolPBL e reproduzida aqui sem alterações nas equações.
 #
-#  Analogia eletromecânica (Resumo, Seções 6 e 10–16):
-#     pressão ↔ tensão (across)   fluxo ↔ corrente (through)
-#     resistência ↔ resistor      complacência ↔ capacitor     válvula ↔ diodo
-#     ventrículo ↔ capacitor de capacitância variável C(t) = 1/E(t)
+# Diferenças em relação ao original:
+# - Não depende de ControlSystems.jl. Os três modelos têm matriz A diagonal,
+#   então a discretização ZOH é feita de forma analítica (exp elemento a
+#   elemento), o que funciona direto com ForwardDiff e dispensa expm.jl.
+# - `simulate` virou `simulate_wk` para não colidir com `NeoPKPD.simulate`.
 #
-#           Rin (diodo)           Rav+Zc (diodo)
-#   ┌──────────►|──────── VE ─────────►|────────┬─────────┐ Pao (PA medida)
-#   │                    E(t)                   │         │
-#   │                                       Ca ═╪═        ▓ TPR = Rs
-#   │                                           │ Pc      │
-#   │   Pv                                      ┴         │
-#   └───────────────────── Cv (veias) ◄────────────────────┘
-#                     (V0v = volume não estressado)
-#
-#  - Árvore arterial: Windkessel de 3 elementos (Zc, Ca = AC, Rs = TPR).
-#  - Árvore venosa: complacência Cv = VC com volume não estressado V0v.
-#  - Ventrículo: elastância variável E(t) = Emin + (Emax − Emin)·e(t)
-#      ⇒ C_D = 1/Emin (diástole) e C_S = 1/Emax (sístole), exatamente o
-#        "capacitor de capacitância variável" do Resumo (Seção 14.3).
-#    O coração direito e a circulação pulmonar estão agregados ao ventrículo
-#    e a Rin (simplificação de um único ventrículo, como no modelo de
-#    Bjørdalsbakke et al. 2022 usado no CirculatorySystemModels.jl).
-#  - Barorreflexo: malha fechada de controle (Resumo, Seção 9) atuando em
-#    FC, TPR, Emax e V0v, com sensibilidade reduzida pelo propofol.
-# =============================================================================
+# Unidades (como em Stergiopulos 1999): pressão em mmHg, fluxo em mL/s,
+# Rp e Rc em mmHg·s/mL, C em mL/mmHg, L em mmHg·s²/mL, tempo em s.
 
 """
-Parâmetros mecânicos do sistema cardiovascular. Unidades: mmHg, ml, s.
-Os valores padrão representam um adulto típico e são substituídos pela
-calibração do paciente virtual (`calibrar`).
+Sistema linear em espaço de estados com matriz A diagonal:
+    ẋ = diag(a)·x + b·u,   y = c'x + d·u
+Se `h > 0`, é a versão discreta (ZOH) com período `h`:
+    x[k+1] = diag(a)·x[k] + b·u[k],   y[k] = c'x[k] + d·u[k]
 """
-Base.@kwdef struct ParametrosCV
-    FC::Float64 = 72.0       # bpm
-    Emax::Float64 = 2.0      # mmHg/ml   (C_S = 0,5 ml/mmHg, valor do Resumo)
-    Emin::Float64 = 0.06     # mmHg/ml   (C_D ≈ 17 ml/mmHg)
-    Vd::Float64 = 10.0       # ml        volume morto do ventrículo
-    Rin::Float64 = 0.02      # mmHg·s/ml resistência de enchimento (veias centrais + valva AV)
-    Rav::Float64 = 0.005     # mmHg·s/ml resistência da valva aórtica aberta
-    Zc::Float64 = 0.03       # mmHg·s/ml impedância característica da aorta
-    Ca::Float64 = 1.5        # ml/mmHg   complacência arterial (AC)
-    Rs::Float64 = 1.0        # mmHg·s/ml resistência periférica total (TPR)
-    Va0::Float64 = 700.0     # ml        volume não estressado arterial
-    Cv::Float64 = 100.0      # ml/mmHg   complacência venosa (VC, valor do Resumo)
-    Vv0::Float64 = 2500.0    # ml        volume não estressado venoso
-    Vtotal::Float64 = 4250.0 # ml        volume circulante do modelo
+struct WKSistema{T<:Real}
+    a::Vector{T}
+    b::Vector{T}
+    c::Vector{T}
+    d::T
+    h::Float64      # 0.0 para tempo contínuo
+end
+
+function _wk(a, b, c, d, h, discretize)
+    T = promote_type(eltype(a), eltype(b), eltype(c), typeof(d))
+    a, b, c, d = T.(a), T.(b), T.(c), T(d)
+    discretize || return WKSistema(a, b, c, d, 0.0)
+    ad = exp.(a .* h)
+    bd = (ad .- 1) ./ a .* b
+    return WKSistema(ad, bd, c, d, Float64(h))
 end
 
 """
-Barorreflexo arterial simplificado (inspirado em Ursino 1998).
-
-    r = tanh(−(Ps − Pset)/S)              resposta aferente normalizada
-    τᵢ·dxᵢ/dt = g·r − xᵢ                  dinâmica de cada efetor
-    FC  = FC₀ ·(1 + A_FC·x_FC)
-    TPR = TPR₀·(1 + A_R·x_R)
-    Emax= Emax₀·(1 + A_E·x_E)
-    V0v = V0v₀·(1 − A_V·x_V)              venoconstrição recruta volume
-
-`g = 1 + efeito_baro(Ce_bis)` é o ganho, reduzido pelo propofol.
+Windkessel paralelo de 4 elementos, θ = [Rp, C, Rc, L], discretizado (ZOH) com período h.
+x1 é o volume no capacitor C (forma paralela de Burattini, Westerhof, Stergiopulos).
 """
-Base.@kwdef struct ParametrosBaro
-    Pset::Float64 = 93.0     # mmHg  ponto de ajuste (= PAM basal do paciente)
-    S::Float64 = 25.0        # mmHg  escala da sigmoide
-    tauS::Float64 = 2.0      # s     filtro do sensor (barorreceptor)
-    A_FC::Float64 = 0.40
-    A_R::Float64 = 0.35
-    A_E::Float64 = 0.25
-    A_V::Float64 = 0.08
-    tauFC::Float64 = 2.0
-    tauR::Float64 = 6.0
-    tauE::Float64 = 8.0
-    tauV::Float64 = 20.0
+function G(θ, h; discretize=true)
+    Rp, C, Rc, L = θ
+    return _wk([-1 / (C * Rp), -Rc / L], [1, Rc], [1 / C, -Rc / L], Rc, h, discretize)
 end
 
 """
-Modelo de observação da pressão arterial (equação de medida).
-
-O modelo 0-D fornece a pressão na raiz da aorta. O manguito mede no braço,
-onde a pressão de pulso é AMPLIFICADA pela reflexão de ondas — fenômeno que
-um modelo 0-D não reproduz (Resumo, Seção 12.4). A PAM praticamente não muda
-ao longo da árvore, então:
-
-    PP_braquial = amp · PP_aórtica
-    PAD_braquial = PAM − ff · PP_braquial     (ff = (PAM−PAD)/(PAS−PAD) do manguito; 1/3 por padrão)
-    PAS_braquial = PAD_braquial + PP_braquial
+Windkessel de 3 elementos, θ = [Rp, C, Rc]. Corresponde ao de 4 elementos com L = Inf.
 """
-Base.@kwdef struct ObservacaoPA
-    amp::Float64 = 1.0
-    ff::Float64 = 1 / 3
+function G3(θ, h; discretize=true)
+    Rp, C, Rc = θ
+    return _wk([-1 / (C * Rp)], [1], [1 / C], Rc, h, discretize)
 end
 
 """
-    amplificacao_pp(idade)
-
-Razão PP braquial / PP aórtica. A amplificação cai com a idade porque a
-aorta enrijece e as ondas refletidas retornam mais cedo (somando-se à
-sístole já na aorta). Aproximação exponencial da ordem de grandeza
-relatada no estudo Anglo-Cardiff (McEniery et al., JACC 2005):
-≈1,7 aos 20 anos, ≈1,3 aos 50 e ≈1,25 após os 65.
+Windkessel de 2 elementos, θ = [Rp, C]. Corresponde ao de 4 elementos com L = 0.
 """
-amplificacao_pp(idade) = 1.25 + 0.45 * exp(-(max(idade, 18.0) - 20) / 15)
-
-"""
-Modelo completo (PK + PD + circulação + barorreflexo) — é o `p` passado
-ao integrador.
-"""
-struct ModeloInducao
-    pk::ParametrosPK
-    pd::ParametrosPD
-    cv::ParametrosCV
-    baro::ParametrosBaro
-    inotmax::Float64                 # efeito inotrópico máximo para a idade
-    infusao::Vector{TrechoInfusao}
-    barorreflexo::Bool               # liga/desliga a malha fechada
-    farmaco::Bool                    # liga/desliga os efeitos do propofol
-    obs::ObservacaoPA                # conversão aorta → manguito (só para saída)
+function G2(θ, h; discretize=true)
+    Rp, C = θ
+    return _wk([-1 / (C * Rp)], [1], [1 / C], 0, h, discretize)
 end
 
-ModeloInducao(pk, pd, cv, baro, inotmax, infusao, barorreflexo, farmaco) =
-    ModeloInducao(pk, pd, cv, baro, inotmax, infusao, barorreflexo, farmaco, ObservacaoPA())
-
-"""Cópia de um struct trocando alguns campos: `com(cv; Rs = 0.8)`."""
-function com(x::T; kw...) where {T}
-    vals = map(f -> haskey(kw, f) ? kw[f] : getfield(x, f), fieldnames(T))
-    return T(vals...)
+"""
+Simula o sistema discreto `sys` com entrada `u` a partir do estado `x0`.
+Retorna `(y, x)`, com `x[k, :]` o estado na amostra k (mesma convenção do `lsim` do ControlSystems).
+"""
+function lsim_wk(sys::WKSistema, u::AbstractVector, x0=zeros(length(sys.a)))
+    sys.h > 0 || throw(ArgumentError("lsim_wk requer um sistema discreto"))
+    T = promote_type(eltype(sys.a), eltype(u), eltype(x0))
+    n, nx = length(u), length(sys.a)
+    y = Vector{T}(undef, n)
+    x = Matrix{T}(undef, n, nx)
+    xk = T.(x0)
+    for k in 1:n
+        x[k, :] = xk
+        y[k] = dot(sys.c, xk) + sys.d * u[k]
+        xk = sys.a .* xk .+ sys.b .* u[k]
+    end
+    return y, x
 end
 
-# Índices do vetor de estado ---------------------------------------------------
-const NESTADOS = 16
-const I_A1, I_A2, I_A3, I_CEB, I_CEH = 1, 2, 3, 4, 5      # PK [mg] e Ce [µg/ml]
-const I_FASE, I_VLV, I_VA, I_VV = 6, 7, 8, 9               # fase [batimentos], volumes [ml]
-const I_PS, I_XFC, I_XR, I_XE, I_XV = 10, 11, 12, 13, 14  # barorreflexo
-const I_INTP, I_INTQ = 15, 16                              # ∫Pao dt, ∫Qao dt
+"Estado após simular `u` inteiro a partir de `x0` (útil para encadear batimentos)."
+function estado_final(sys::WKSistema, u::AbstractVector, x0)
+    xk = copy(x0)
+    for uk in u
+        xk = sys.a .* xk .+ sys.b .* uk
+    end
+    return xk
+end
 
 """
-    ativacao(tc, T)
-
-Função de ativação ventricular e(t) ∈ [0,1] (cossenoidal, à la Shi et al.):
-contração em Ts = 0,35·√T, relaxamento em Ts/2, repouso no resto do ciclo.
+Simula o modelo `G_(θ, h)` com fluxo `u`, a partir de `x0`. Retorna a pressão
+(e os estados, se `xout=true`).
 """
-@inline function ativacao(tc, T)
-    Ts = 0.35 * sqrt(T)
-    Tr = 0.5 * Ts
-    if tc < Ts
-        return 0.5 * (1 - cos(pi * tc / Ts))
-    elseif tc < Ts + Tr
-        return 0.5 * (1 + cos(pi * (tc - Ts) / Tr))
-    else
-        return 0.0
+function simulate_wk(θ, x0, u, h; G_=G, xout=false)
+    y, x = lsim_wk(G_(θ, h), u, x0)
+    return xout ? (y, x) : y
+end
+
+"""
+Resolve x0 explorando a periodicidade da entrada: se `u` é um período, o estado
+inicial periódico satisfaz x0 = Aⁿx0 + xₙ⁰, onde xₙ⁰ é o estado após n passos
+partindo do repouso. Com A diagonal: x0ᵢ = xₙ⁰ᵢ / (1 - aᵢⁿ).
+"""
+function solvex0(sys::WKSistema, u::AbstractVector)
+    xn0 = estado_final(sys, u, zeros(eltype(sys.a), length(sys.a)))
+    return xn0 ./ (1 .- sys.a .^ length(u))
+end
+
+"""
+Resposta em frequência do modelo contínuo em `w` (rad/s): retorna `(magnitude, fase_graus)`.
+Substitui o `bode` do ControlSystems usado nos scripts originais.
+"""
+function bode_wk(θ, w; G_=G)
+    sys = G_(θ, 0.0; discretize=false)
+    H = [sum(sys.c .* sys.b ./ (im * wi .- sys.a)) + sys.d for wi in w]
+    return abs.(H), rad2deg.(angle.(H))
+end
+
+# ------------------------------------------------------------------
+# Identificação (erro de saída, Newton com diferenciação automática)
+# ------------------------------------------------------------------
+
+struct IdConditions
+    θ0::Vector{Float64}     # e.g. [Rp, C, Rc, L]
+    x00::Vector{Float64}
+    θid::Vector{Int}        # e.g. [1,1,1,0]
+    x0id::Bool              # identificar x0
+    x0solve::Bool           # resolver x0 pela periodicidade a cada passo
+    G_::Function            # modelo, na forma `G_(θ, h; discretize=true)`
+    function IdConditions(θ0, x00, θid, x0id, x0solve, G_=G)
+        length(θ0) == length(θid) || error("Length of `θ0` != `θid`.")
+        new(θ0, x00, θid, x0id, x0solve, G_)
     end
 end
 
-"""
-    algebrico(u, m, t)
-
-Todas as variáveis algébricas (pressões, fluxos, parâmetros efetivos) a
-partir do estado `u`. Usada pela EDO e pelo pós-processamento — assim o que
-se plota é exatamente o que foi integrado.
-"""
-@inline function algebrico(u, m::ModeloInducao, t)
-    cv, b, pk = m.cv, m.baro, m.pk
-    Cp = u[I_A1] / pk.V1                          # mg/L = µg/ml
-    ef = efeitos(m.pd, m.inotmax, u[I_CEB], u[I_CEH])
-    fat = m.farmaco ? 1.0 : 0.0
-    FC = cv.FC * (1 + b.A_FC * u[I_XFC])
-    Rs = cv.Rs * (1 + fat * ef.tpr) * (1 + b.A_R * u[I_XR])
-    Emax = max(cv.Emax * (1 + fat * ef.inot) * (1 + b.A_E * u[I_XE]), cv.Emin)
-    Vv0 = cv.Vv0 * (1 + fat * ef.veno) * (1 - b.A_V * u[I_XV])
-    T = 60 / FC
-    fase = u[I_FASE]
-    tc = (fase - floor(fase)) * T
-    E = cv.Emin + (Emax - cv.Emin) * ativacao(tc, T)
-    Plv = E * (u[I_VLV] - cv.Vd)
-    Pc = (u[I_VA] - cv.Va0) / cv.Ca
-    Pv = (u[I_VV] - Vv0) / cv.Cv
-    Qin = max(Pv - Plv, 0.0) / cv.Rin
-    Qao = max(Plv - Pc, 0.0) / (cv.Rav + cv.Zc)
-    Pao = Pc + cv.Zc * Qao
-    Qs = (Pc - Pv) / Rs
-    return (; Cp, ef, FC, Rs, Emax, Vv0, E, Plv, Pc, Pv, Pao, Qin, Qao, Qs)
+"Monta o vetor de otimização."
+function p(θ, x0, id::IdConditions)
+    pv = θ[findall(Bool.(id.θid))]
+    if id.x0id
+        pv = vcat(pv, x0)
+    end
+    return Float64.(pv)
 end
 
-"""Lado direito da EDO (forma in-place exigida pelo OrdinaryDiffEq)."""
-function rhs!(du, u, m::ModeloInducao, t)
-    pk, b = m.pk, m.baro
-    a = algebrico(u, m, t)
-    # --- Farmacocinética (Schnider) ---
-    inf = taxa_infusao(m.infusao, t)
-    A1, A2, A3 = u[I_A1], u[I_A2], u[I_A3]
-    du[I_A1] = inf - (pk.k10 + pk.k12 + pk.k13) * A1 + pk.k21 * A2 + pk.k31 * A3
-    du[I_A2] = pk.k12 * A1 - pk.k21 * A2
-    du[I_A3] = pk.k13 * A1 - pk.k31 * A3
-    du[I_CEB] = pk.ke0_bis * (a.Cp - u[I_CEB])
-    du[I_CEH] = pk.ke0_hemo * (a.Cp - u[I_CEH])
-    # --- Circulação (conservação de volume em cada nó) ---
-    du[I_FASE] = a.FC / 60
-    du[I_VLV] = a.Qin - a.Qao
-    du[I_VA] = a.Qao - a.Qs
-    du[I_VV] = a.Qs - a.Qin
-    # --- Barorreflexo (malha fechada) ---
-    du[I_PS] = (a.Pao - u[I_PS]) / b.tauS
-    g = m.barorreflexo ? (1 + (m.farmaco ? a.ef.baro : 0.0)) : 0.0
-    r = tanh(-(u[I_PS] - b.Pset) / b.S)
-    du[I_XFC] = (g * r - u[I_XFC]) / b.tauFC
-    du[I_XR] = (g * r - u[I_XR]) / b.tauR
-    du[I_XE] = (g * r - u[I_XE]) / b.tauE
-    du[I_XV] = (g * r - u[I_XV]) / b.tauV
-    # --- Integrais para médias exatas por batimento ---
-    du[I_INTP] = a.Pao
-    du[I_INTQ] = a.Qao
-    return nothing
+"Recupera a parametrização original (θ, x0) a partir do vetor de otimização."
+function deal(pv, id::IdConditions)
+    pidx = cumsum(id.θid)
+    θ = [Bool(id_) ? pv[i] : θ0_ for (i, θ0_, id_) in zip(pidx, id.θ0, id.θid)]
+    x0 = id.x0id ? pv[sum(id.θid).+(1:length(id.x00))] : id.x00
+    return θ, x0
+end
+
+"Custo (soma dos quadrados do erro de saída) a ser minimizado."
+function cost(pv, id::IdConditions, u, y, h)
+    θ, x0 = deal(pv, id)
+    sys = id.G_(θ, h)
+    if id.x0solve
+        x0 = solvex0(sys, u)
+    end
+    ym, = lsim_wk(sys, u, x0)
+    e = y .- ym
+    return dot(e, e)
 end
 
 """
-Estado inicial "ingênuo": volumes distribuídos para uma pressão uniforme
-`P0` (≈ Pms) e farmacocinética zerada.
+Identifica um subconjunto de {parâmetros θ, estado inicial x0} pelo método de Newton
+(IPNewton com θ ≥ 0 se `θpos=true`). Retorna `(phat, res)`.
 """
-function estado_inicial(cv::ParametrosCV; P0 = 8.0)
-    u = zeros(NESTADOS)
-    Vlv = cv.Vd + P0 / cv.Emin
-    Va = cv.Va0 + cv.Ca * P0
-    u[I_VLV] = Vlv
-    u[I_VA] = Va
-    u[I_VV] = cv.Vtotal - Vlv - Va
-    u[I_PS] = P0
-    return u
+function identify(θ0, x00, u, y, h; θid=ones(Int, length(θ0)), x0id=true, x0solve=false,
+                  G_=G, θpos=true, v=false)
+    id = IdConditions(θ0, x00, θid, x0id, x0solve, G_)
+    p0 = p(θ0, x00, id)
+    f(pv) = cost(pv, id, u, y, h)
+    g!(grad, pv) = ForwardDiff.gradient!(grad, f, pv)
+    function h!(hess, pv)
+        ForwardDiff.hessian!(hess, f, pv)
+        hess .= (hess .+ hess') ./ 2
+    end
+
+    df = TwiceDifferentiable(f, g!, h!, p0)
+    opts = Optim.Options(store_trace=true, extended_trace=true, show_trace=v)
+    res = if θpos
+        lp = vcat(zeros(sum(id.θid)), fill(-Inf, id.x0id ? length(x00) : 0))
+        up = fill(Inf, length(p0))
+        dfc = TwiceDifferentiableConstraints(lp, up)
+        optimize(df, dfc, p0, IPNewton(), opts)
+    else
+        optimize(df, p0, Newton(alphaguess=LineSearches.InitialPrevious(),
+                                linesearch=LineSearches.BackTracking()), opts)
+    end
+    return Optim.minimizer(res), res
 end
 
-"""Volume total contido no circuito (deve ser constante — teste de verificação)."""
-volume_total(u) = u[I_VLV] + u[I_VA] + u[I_VV]
+"""
+Identifica com Nelder-Mead (busca global, sem restrição de positividade).
+"""
+function identifyglobal(θ0, x00, u, y, h; θid=ones(Int, length(θ0)), x0id=true,
+                        x0solve=false, G_=G, v=false)
+    id = IdConditions(θ0, x00, θid, x0id, x0solve, G_)
+    f(pv) = cost(pv, id, u, y, h)
+    opts = Optim.Options(iterations=10^5, store_trace=true, extended_trace=true, show_trace=v)
+    res = optimize(f, p(θ0, x00, id), NelderMead(), opts)
+    return Optim.minimizer(res), res
+end
+
+"""
+Parâmetros de Stergiopulos et al. (1999), batimento tipo A, humano.
+"""
+function params_stergiopulos1999total()
+    Rp = 0.79     # resistência periférica [mmHg·s/mL]
+    C = 1.22      # complacência arterial total [mL/mmHg]
+    Rc = 0.056    # resistência característica da aorta [mmHg·s/mL]
+    L = 0.0051    # inertância arterial total [mmHg·s²/mL]
+    return [Rp, C, Rc, L], [8.066, -8.296]
+end
