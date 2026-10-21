@@ -15,6 +15,11 @@ mesmas equações, mesmos valores padrão e os mesmos testes. Sobre ele, este re
 acrescenta calibração com PAS/PAD, métricas de hipotensão, janela de dose, faixa de incerteza,
 coorte virtual e uma plataforma web para médicos.
 
+> **Para usar:** leia o **[MANUAL.md](MANUAL.md)** (passo a passo). Resumo: baixe o
+> [ZIP](https://github.com/vivianguilger-lab/PBL_6/archive/refs/heads/claude/windkessel-propofol-hemodynamic-p72qsk.zip),
+> extraia e dê duplo clique em `abrir_plataforma.bat` (Windows) ou `abrir_plataforma.command`
+> (macOS/Linux) — o Julia é instalado sozinho se faltar.
+
 ![Plataforma PropoSim](docs/figuras/plataforma.png)
 
 ## O problema
@@ -66,8 +71,8 @@ plataforma()          # abre http://localhost:8080
 ```
 
 A primeira instalação demora (o NeoPKPD traz o DifferentialEquations). Quem já tinha instalado:
-`using Pkg; Pkg.update()`. Com a pasta do projeto no Windows: duplo clique em
-`abrir_plataforma.bat`. Os dados não saem do computador (o servidor só aceita conexões locais).
+`using Pkg; Pkg.update()`. Com a pasta do projeto: duplo clique em `abrir_plataforma.bat`
+(Windows) ou `abrir_plataforma.command` (macOS/Linux), que instalam o Julia se faltar. Os dados não saem do computador (o servidor só aceita conexões locais).
 
 **No REPL:**
 
