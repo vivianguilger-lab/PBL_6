@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Duplo clique (macOS) ou ./abrir_plataforma.command (Linux): instala o Julia
-# se faltar, prepara o projeto e abre a plataforma PropoSim no navegador.
+# se faltar, prepara o projeto e abre a plataforma PBL-6 no navegador.
 cd "$(dirname "$0")" || exit 1
 
 if ! command -v julia >/dev/null 2>&1; then
@@ -14,7 +14,7 @@ if ! command -v julia >/dev/null 2>&1; then
 fi
 
 echo
-echo "PropoSim — preparando a plataforma"
+echo "PBL-6 — preparando a plataforma"
 echo "Na primeira vez o Julia baixa e compila os pacotes (10 a 20 min)."
 echo "O navegador abre sozinho. NÃO feche esta janela enquanto usa."
 echo

@@ -20,7 +20,7 @@ coorte virtual e uma plataforma web para médicos.
 > extraia e dê duplo clique em `abrir_plataforma.bat` (Windows) ou `abrir_plataforma.command`
 > (macOS/Linux) — o Julia é instalado sozinho se faltar.
 
-![Plataforma PropoSim](docs/figuras/plataforma.png)
+![Plataforma PBL-6](docs/figuras/plataforma.png)
 
 ## O problema
 

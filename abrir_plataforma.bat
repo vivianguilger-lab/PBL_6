@@ -1,8 +1,8 @@
 @echo off
 setlocal
-title PropoSim - simulador da inducao com propofol
+title PBL-6 - simulador da inducao com propofol
 rem Duplo clique: instala o Julia se faltar, prepara o projeto e abre a
-rem plataforma PropoSim no navegador. Deixe esta janela aberta durante o uso.
+rem plataforma PBL-6 no navegador. Deixe esta janela aberta durante o uso.
 cd /d "%~dp0"
 
 if not exist "Project.toml" goto :sem_projeto
@@ -28,7 +28,7 @@ exit /b 1
 :rodar
 echo.
 echo ================================================================
-echo  PropoSim - preparando a plataforma
+echo  PBL-6 - preparando a plataforma
 echo  Na primeira vez o Julia baixa e compila os pacotes: 10 a 20 min.
 echo  Depois disso abre em menos de 1 minuto.
 echo  O navegador abre sozinho. NAO feche esta janela enquanto usa.
