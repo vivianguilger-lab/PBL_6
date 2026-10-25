@@ -4,185 +4,283 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>PBL-6 — Indução com Propofol</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 :root {
   color-scheme: light;
-  --bg: #f4f5f2; --surface: #fcfcfb; --surface-2: #f0efec; --border: rgba(11,11,11,.10);
-  --ink: #0b0b0b; --ink-2: #52514e; --muted: #898781; --grid: #e1e0d9; --axis: #c3c2b7;
-  --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a; --s4: #6250d6; --band: rgba(42,120,214,.16);
-  --band-pa: rgba(137,135,129,.16);
+  --f-display: "Fraunces", "Iowan Old Style", Georgia, "Times New Roman", serif;
+  --f-ui: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --bg: #f2f3ef; --surface: #fcfcfb; --surface-2: #f0efec; --surface-3: #e7e6e0; --border: rgba(11,11,11,.09);
+  --border-2: rgba(11,11,11,.16);
+  --ink: #0b0b0b; --ink-2: #52514e; --muted: #898781; --grid: #e6e5df; --axis: #c3c2b7;
+  --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a; --band: rgba(42,120,214,.16);
+  --band-pa: rgba(137,135,129,.15);
   --good: #0ca30c; --good-ink: #006300; --warn: #fab219; --warn-ink: #8a5a00; --serious: #ec835a;
   --crit: #d03b3b; --crit-ink: #a12424; --accent: #2a78d6; --accent-ink: #ffffff;
-  --good-bg: rgba(12,163,12,.08); --warn-bg: rgba(250,178,25,.14); --crit-bg: rgba(208,59,59,.09);
-  --shadow: 0 1px 2px rgba(0,0,0,.04), 0 4px 16px rgba(0,0,0,.04);
+  --good-bg: rgba(12,163,12,.08); --warn-bg: rgba(250,178,25,.13); --crit-bg: rgba(208,59,59,.08);
+  --hero: #0e2138; --hero-2: #16375c; --hero-ink: #f3f6fa; --hero-ink-2: rgba(243,246,250,.70);
+  --shadow: 0 1px 2px rgba(16,24,40,.04), 0 8px 24px -8px rgba(16,24,40,.10);
+  --shadow-lg: 0 2px 4px rgba(16,24,40,.04), 0 18px 40px -12px rgba(16,24,40,.18);
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     color-scheme: dark;
-    --bg: #0d0d0d; --surface: #1a1a19; --surface-2: #232321; --border: rgba(255,255,255,.10);
-    --ink: #f0efec; --ink-2: #c3c2b7; --muted: #898781; --grid: #2c2c2a; --axis: #383835;
-    --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #9085e9; --band: rgba(57,135,229,.22);
+    --bg: #0d0d0d; --surface: #1a1a19; --surface-2: #232321; --surface-3: #2c2c2a; --border: rgba(255,255,255,.09);
+    --border-2: rgba(255,255,255,.16);
+    --ink: #f0efec; --ink-2: #c3c2b7; --muted: #898781; --grid: #2c2c2a; --axis: #45453f;
+    --s1: #3987e5; --s2: #d95926; --s3: #199e70; --band: rgba(57,135,229,.22);
     --band-pa: rgba(195,194,183,.10);
-    --good-ink: #0ca30c; --warn-ink: #fab219; --crit-ink: #e66767; --accent: #3987e5;
-    --good-bg: rgba(12,163,12,.14); --warn-bg: rgba(250,178,25,.12); --crit-bg: rgba(208,59,59,.16);
-    --shadow: none;
+    --good-ink: #2fbf2f; --warn-ink: #fab219; --crit-ink: #e66767; --accent: #3987e5;
+    --good-bg: rgba(12,163,12,.13); --warn-bg: rgba(250,178,25,.11); --crit-bg: rgba(208,59,59,.15);
+    --hero: #0a1626; --hero-2: #10263f;
+    --shadow: none; --shadow-lg: none;
   }
 }
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --bg: #0d0d0d; --surface: #1a1a19; --surface-2: #232321; --border: rgba(255,255,255,.10);
-  --ink: #f0efec; --ink-2: #c3c2b7; --muted: #898781; --grid: #2c2c2a; --axis: #383835;
-  --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #9085e9; --band: rgba(57,135,229,.22);
+  --bg: #0d0d0d; --surface: #1a1a19; --surface-2: #232321; --surface-3: #2c2c2a; --border: rgba(255,255,255,.09);
+  --border-2: rgba(255,255,255,.16);
+  --ink: #f0efec; --ink-2: #c3c2b7; --muted: #898781; --grid: #2c2c2a; --axis: #45453f;
+  --s1: #3987e5; --s2: #d95926; --s3: #199e70; --band: rgba(57,135,229,.22);
   --band-pa: rgba(195,194,183,.10);
-  --good-ink: #0ca30c; --warn-ink: #fab219; --crit-ink: #e66767; --accent: #3987e5;
-  --good-bg: rgba(12,163,12,.14); --warn-bg: rgba(250,178,25,.12); --crit-bg: rgba(208,59,59,.16);
-  --shadow: none;
+  --good-ink: #2fbf2f; --warn-ink: #fab219; --crit-ink: #e66767; --accent: #3987e5;
+  --good-bg: rgba(12,163,12,.13); --warn-bg: rgba(250,178,25,.11); --crit-bg: rgba(208,59,59,.15);
+  --hero: #0a1626; --hero-2: #10263f;
+  --shadow: none; --shadow-lg: none;
 }
 * { box-sizing: border-box; }
 html, body { margin: 0; background: var(--bg); color: var(--ink);
-  font: 15px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  font: 15px/1.5 var(--f-ui); -webkit-font-smoothing: antialiased; }
 button, input, select { font: inherit; color: inherit; }
-header.top { display: flex; align-items: center; gap: 12px; padding: 14px 24px;
-  background: var(--surface); border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 5; }
-.logo { width: 34px; height: 34px; border-radius: 9px; background: var(--accent); display: grid; place-items: center; flex: none; }
-.logo svg { width: 22px; height: 22px; }
-header.top h1 { font-size: 17px; margin: 0; font-weight: 650; }
-header.top .sub { font-size: 13px; color: var(--ink-2); }
-.badge { margin-left: auto; font-size: 12px; color: var(--ink-2); border: 1px solid var(--border);
-  padding: 4px 10px; border-radius: 999px; white-space: nowrap; }
-.icon-btn { border: 1px solid var(--border); background: var(--surface); border-radius: 8px; padding: 6px 10px;
-  cursor: pointer; color: var(--ink-2); font-size: 13px; }
+.num { font-variant-numeric: tabular-nums; }
+
+/* ---------------------------------------------------------------- cabeçalho */
+.hero { position: relative; overflow: hidden; color: var(--hero-ink);
+  background: linear-gradient(120deg, var(--hero) 0%, var(--hero-2) 100%); padding: 22px 28px 92px; }
+.hero .ecg { position: absolute; inset: auto 0 22px 0; width: 100%; height: 70px; opacity: .10; pointer-events: none; }
+.hero-in { position: relative; max-width: 1480px; margin: 0 auto; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+.logo { width: 44px; height: 44px; border-radius: 12px; display: grid; place-items: center; flex: none;
+  background: rgba(255,255,255,.10); border: 1px solid rgba(255,255,255,.18); }
+.logo svg { width: 26px; height: 26px; }
+.hero-in > div:nth-child(2) { flex: 1 1 260px; min-width: 0; }
+.hero h1 { font: 600 26px/1.1 var(--f-display); margin: 0; letter-spacing: -.01em; }
+.hero .sub { font-size: 14px; color: var(--hero-ink-2); margin-top: 3px; }
+.hero .tags { display: flex; gap: 8px; flex-wrap: wrap; margin-left: auto; align-items: center; }
+.tag { font-size: 12px; color: var(--hero-ink-2); border: 1px solid rgba(255,255,255,.20); padding: 4px 10px;
+  border-radius: 999px; white-space: nowrap; }
+.hero .icon-btn { background: rgba(255,255,255,.08); border-color: rgba(255,255,255,.22); color: var(--hero-ink); }
+.hero .icon-btn:hover { background: rgba(255,255,255,.16); }
+.icon-btn { border: 1px solid var(--border-2); background: var(--surface); border-radius: 9px; padding: 7px 12px;
+  cursor: pointer; color: var(--ink-2); font-size: 13px; display: inline-flex; align-items: center; gap: 6px; }
 .icon-btn:hover { background: var(--surface-2); }
-.layout { display: grid; grid-template-columns: 340px minmax(0, 1fr); gap: 20px; padding: 20px 24px 40px;
-  max-width: 1480px; margin: 0 auto; }
-@media (max-width: 980px) { .layout { grid-template-columns: 1fr; padding: 16px; } .badge { display: none; }
-  header.top { padding: 12px 16px; } .tema-txt { display: none; } #tema { margin-left: auto; } }
-.card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; box-shadow: var(--shadow); }
-.card > .hd { padding: 14px 18px 0; display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
-.card > .hd h2 { font-size: 15px; margin: 0; font-weight: 650; }
+.icon-btn svg { width: 15px; height: 15px; }
+
+/* ---------------------------------------------------------------- layout */
+.layout { display: grid; grid-template-columns: 350px minmax(0, 1fr); gap: 22px; padding: 0 28px 48px;
+  max-width: 1536px; margin: -68px auto 0; position: relative; }
+@media (max-width: 1020px) { .layout { grid-template-columns: 1fr; padding: 0 16px 32px; }
+  .hero { padding: 18px 16px 84px; } .hero .tags .tag { display: none; } }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; box-shadow: var(--shadow); }
+.card > .hd { padding: 18px 22px 0; display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.card > .hd .idx { font: 600 12px/1 var(--f-ui); color: var(--muted); letter-spacing: .08em; }
+.card > .hd h2 { font: 600 18px/1.25 var(--f-display); margin: 0; letter-spacing: -.005em; }
 .card > .hd .hint { font-size: 13px; color: var(--ink-2); }
-.card > .bd { padding: 12px 18px 16px; }
-aside.form { position: sticky; top: 78px; align-self: start; }
-@media (max-width: 980px) { aside.form { position: static; } }
-fieldset { border: 0; margin: 0 0 14px; padding: 0; }
-legend { font-size: 12px; font-weight: 650; letter-spacing: .04em; text-transform: uppercase; color: var(--muted);
-  margin-bottom: 8px; }
-.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-label.f { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--ink-2); }
-.inp { display: flex; align-items: center; border: 1px solid var(--border); border-radius: 9px; background: var(--surface);
-  padding: 0 10px; height: 38px; }
-.inp:focus-within { outline: 2px solid var(--accent); outline-offset: -1px; }
-.inp input, .inp select { border: 0; outline: 0; background: transparent; width: 100%; min-width: 0; height: 36px; }
-.inp .u { color: var(--muted); font-size: 12px; padding-left: 6px; white-space: nowrap; }
-.seg { display: grid; grid-template-columns: 1fr 1fr; border: 1px solid var(--border); border-radius: 9px; overflow: hidden; height: 38px; }
-.seg button { border: 0; background: transparent; cursor: pointer; color: var(--ink-2); }
-.seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); font-weight: 600; }
+.card > .bd { padding: 14px 22px 20px; }
+.sec-note { font-size: 13px; color: var(--ink-2); margin: -4px 0 10px; }
+
+/* ---------------------------------------------------------------- formulário */
+aside.form { position: sticky; top: 16px; align-self: start; box-shadow: var(--shadow-lg); max-height: calc(100vh - 32px);
+  display: flex; flex-direction: column; }
+aside.form form { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+aside.form .form-bd { overflow: auto; flex: 1; min-height: 0; padding: 0 22px 8px; }
+@media (max-width: 1020px) { aside.form { position: static; max-height: none; } aside.form .form-bd { overflow: visible; } }
+.form-hd { padding: 18px 22px 12px; border-bottom: 1px solid var(--border); }
+.form-hd h2 { font: 600 19px/1.2 var(--f-display); margin: 0; }
+.form-hd p { margin: 4px 0 0; font-size: 13px; color: var(--ink-2); }
+fieldset { border: 0; margin: 0; padding: 16px 0 4px; }
+fieldset + fieldset { border-top: 1px dashed var(--border-2); }
+legend { display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 600; letter-spacing: .06em;
+  text-transform: uppercase; color: var(--ink-2); padding: 0; margin-bottom: 10px; float: left; width: 100%; }
+legend + * { clear: both; }
+legend .n { width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center; font-size: 11px;
+  background: var(--surface-2); border: 1px solid var(--border-2); color: var(--ink); letter-spacing: 0; }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 12px; }
+label.f { display: flex; flex-direction: column; gap: 5px; font-size: 13px; color: var(--ink-2); font-weight: 500; }
+.inp { display: flex; align-items: center; border: 1px solid var(--border-2); border-radius: 10px; background: var(--surface);
+  padding: 0 11px; height: 40px; transition: border-color .15s, box-shadow .15s; }
+.inp:hover { border-color: var(--axis); }
+.inp:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent); }
+.inp input, .inp select { border: 0; outline: 0; background: transparent; width: 100%; min-width: 0; height: 38px;
+  font-variant-numeric: tabular-nums; font-weight: 500; color: var(--ink); }
+.inp .u { color: var(--muted); font-size: 12px; padding-left: 6px; white-space: nowrap; font-weight: 400; }
+.seg { display: grid; grid-template-columns: 1fr 1fr; border: 1px solid var(--border-2); border-radius: 10px; overflow: hidden;
+  height: 40px; padding: 3px; gap: 3px; background: var(--surface-2); }
+.seg button { border: 0; background: transparent; cursor: pointer; color: var(--ink-2); border-radius: 7px; font-size: 13px; }
+.seg button[aria-pressed="true"] { background: var(--surface); color: var(--ink); font-weight: 600;
+  box-shadow: 0 1px 2px rgba(0,0,0,.08), 0 0 0 1px var(--border); }
+.dose-big { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin: 2px 0 6px; }
+.dose-big .v { font: 600 30px/1 var(--f-display); font-variant-numeric: tabular-nums; }
+.dose-big .v small { font: 500 13px var(--f-ui); color: var(--ink-2); margin-left: 4px; }
+.dose-big .t { font-size: 13px; color: var(--ink-2); text-align: right; }
+.dose-big .t b { color: var(--ink); font-variant-numeric: tabular-nums; }
 .dose-row { display: flex; align-items: center; gap: 12px; }
-.dose-row input[type=range] { flex: 1; accent-color: var(--accent); }
-.dose-total { font-size: 13px; color: var(--ink-2); margin-top: 6px; }
-.dose-total b { color: var(--ink); }
-details.opt summary { cursor: pointer; font-size: 13px; color: var(--ink-2); margin: 4px 0 10px; }
-.btn { width: 100%; height: 44px; border: 0; border-radius: 10px; background: var(--accent); color: var(--accent-ink);
-  font-weight: 650; cursor: pointer; font-size: 15px; display: flex; align-items: center; justify-content: center; gap: 8px; }
+input[type=range] { flex: 1; accent-color: var(--accent); height: 22px; }
+.range-scale { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); margin: -2px 2px 0 2px;
+  font-variant-numeric: tabular-nums; }
+.dose-total { font-size: 12.5px; color: var(--ink-2); margin-top: 6px; line-height: 1.45; }
+details.opt summary { cursor: pointer; font-size: 13px; color: var(--accent); margin: 10px 0 8px; font-weight: 500; }
+.form-ft { padding: 14px 22px 18px; border-top: 1px solid var(--border); background: var(--surface); border-radius: 0 0 16px 16px; }
+.btn { width: 100%; height: 46px; border: 0; border-radius: 11px; color: var(--accent-ink); font-weight: 600; cursor: pointer;
+  font-size: 15px; display: flex; align-items: center; justify-content: center; gap: 8px; letter-spacing: .01em;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 88%, #fff) 0%, var(--accent) 100%);
+  box-shadow: 0 1px 0 rgba(255,255,255,.25) inset, 0 6px 16px -6px color-mix(in srgb, var(--accent) 70%, transparent); }
 .btn:hover { filter: brightness(1.05); }
-.btn:disabled { opacity: .6; cursor: progress; }
-.chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
-.chip { border: 1px solid var(--border); background: var(--surface); border-radius: 999px; padding: 4px 10px;
+.btn:disabled { opacity: .65; cursor: progress; }
+.btn svg { width: 17px; height: 17px; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; align-items: center; }
+.chips .lb { font-size: 12px; color: var(--muted); margin-right: 2px; }
+.chip { border: 1px solid var(--border-2); background: var(--surface); border-radius: 999px; padding: 4px 11px;
   font-size: 12px; cursor: pointer; color: var(--ink-2); }
-.chip:hover { background: var(--surface-2); }
-.err { display: none; margin-top: 10px; padding: 10px 12px; border-radius: 9px; background: var(--crit-bg);
+.chip:hover { background: var(--surface-2); color: var(--ink); }
+.err { display: none; margin-top: 10px; padding: 10px 12px; border-radius: 10px; background: var(--crit-bg);
   color: var(--crit-ink); font-size: 13px; }
-main { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
-.empty { padding: 56px 24px; text-align: center; color: var(--ink-2); }
-.empty svg { width: 64px; height: 64px; opacity: .5; }
-.empty h2 { color: var(--ink); font-size: 18px; margin: 10px 0 6px; }
-.risk { display: flex; gap: 16px; align-items: center; padding: 16px 18px; border-radius: 14px; border: 1px solid var(--border); }
-.risk.BAIXO { background: var(--good-bg); } .risk.MODERADO { background: var(--warn-bg); } .risk.ALTO { background: var(--crit-bg); }
-.risk .ic { width: 46px; height: 46px; border-radius: 50%; display: grid; place-items: center; flex: none; }
+
+/* ---------------------------------------------------------------- resultados */
+main { display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+.empty { padding: 64px 28px; text-align: center; color: var(--ink-2); box-shadow: var(--shadow-lg); }
+.empty .ill { width: 92px; height: 92px; margin: 0 auto 8px; border-radius: 24px; display: grid; place-items: center;
+  background: var(--surface-2); border: 1px solid var(--border); color: var(--accent); }
+.empty .ill svg { width: 48px; height: 48px; }
+.empty h2 { color: var(--ink); font: 600 24px/1.25 var(--f-display); margin: 14px 0 8px; }
+.empty p { max-width: 560px; margin: 0 auto 8px; }
+.steps { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; max-width: 760px; margin: 26px auto 0; text-align: left; }
+@media (max-width: 760px) { .steps { grid-template-columns: 1fr; } }
+.steps div { border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; background: var(--surface); }
+.steps b { display: block; font: 600 15px var(--f-display); color: var(--ink); margin-bottom: 2px; }
+.steps span { font-size: 13px; }
+
+.risk { position: relative; overflow: hidden; padding: 20px 22px 14px 26px; box-shadow: var(--shadow-lg); }
+.risk::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 6px; }
+.risk.BAIXO::before { background: var(--good); } .risk.MODERADO::before { background: var(--warn); } .risk.ALTO::before { background: var(--crit); }
+.risk.BAIXO { background: linear-gradient(90deg, var(--good-bg), transparent 60%), var(--surface); }
+.risk.MODERADO { background: linear-gradient(90deg, var(--warn-bg), transparent 60%), var(--surface); }
+.risk.ALTO { background: linear-gradient(90deg, var(--crit-bg), transparent 60%), var(--surface); }
+.risk .top { display: flex; gap: 18px; align-items: center; flex-wrap: wrap; }
+.risk .ic { width: 52px; height: 52px; border-radius: 50%; display: grid; place-items: center; flex: none; }
 .risk.BAIXO .ic { background: var(--good); } .risk.MODERADO .ic { background: var(--warn); } .risk.ALTO .ic { background: var(--crit); }
-.risk .ic svg { width: 26px; height: 26px; }
-.risk .lbl { font-size: 12px; text-transform: uppercase; letter-spacing: .05em; color: var(--ink-2); font-weight: 650; }
-.risk .lvl { font-size: 22px; font-weight: 700; }
+.risk .ic svg { width: 28px; height: 28px; }
+.risk .lbl { font-size: 11.5px; text-transform: uppercase; letter-spacing: .08em; color: var(--ink-2); font-weight: 600; }
+.risk .lvl { font: 600 32px/1.05 var(--f-display); letter-spacing: -.01em; }
 .risk.BAIXO .lvl { color: var(--good-ink); } .risk.MODERADO .lvl { color: var(--warn-ink); } .risk.ALTO .lvl { color: var(--crit-ink); }
-.risk .txt { font-size: 15px; color: var(--ink); }
-.risk .txt small { display: block; color: var(--ink-2); font-size: 13px; margin-top: 2px; }
-.tiles { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; }
-@media (max-width: 1200px) { .tiles { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.risk .txt { flex: 1 1 340px; font-size: 15.5px; color: var(--ink); }
+.risk .txt small { display: block; color: var(--ink-2); font-size: 13px; margin-top: 4px; }
+.meter { margin-top: 10px; }
+.meter svg { display: block; width: 100%; overflow: visible; }
+
+.tiles { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 14px; }
+@media (max-width: 1250px) { .tiles { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 @media (max-width: 560px) { .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-.tile { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; box-shadow: var(--shadow); }
-.tile .k { font-size: 12px; color: var(--ink-2); }
-.tile .v { font-size: 24px; font-weight: 650; margin-top: 2px; }
-.tile .v small { font-size: 13px; font-weight: 500; color: var(--ink-2); }
-.tile .s { font-size: 12px; color: var(--muted); margin-top: 2px; }
+.tile { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 14px 16px 13px; box-shadow: var(--shadow); }
+.tile .k { font-size: 11.5px; color: var(--ink-2); text-transform: uppercase; letter-spacing: .06em; font-weight: 600; }
+.tile .v { font: 600 clamp(21px, 1.75vw, 27px)/1.15 var(--f-display); white-space: nowrap; margin-top: 6px; font-variant-numeric: tabular-nums; letter-spacing: -.01em; }
+.tile .v small { font: 500 13px var(--f-ui); color: var(--ink-2); margin-left: 2px; letter-spacing: 0; }
+.tile .s { font-size: 12px; color: var(--muted); margin-top: 3px; line-height: 1.4; }
 .loading-dots::after { content: "…"; animation: blink 1s infinite; }
 @keyframes blink { 50% { opacity: .2; } }
-.legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 12px; color: var(--ink-2); margin: 2px 0 6px; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 12px; color: var(--ink-2); margin: 0 0 8px; }
 .legend span { display: inline-flex; align-items: center; gap: 6px; }
-.sw { width: 14px; height: 3px; border-radius: 2px; display: inline-block; }
-.sw.box { height: 10px; border-radius: 2px; }
+.sw { width: 16px; height: 3px; border-radius: 2px; display: inline-block; }
+.sw.box { height: 10px; border-radius: 3px; }
 .sw.dash { background: repeating-linear-gradient(90deg, currentColor 0 4px, transparent 4px 7px) !important; height: 2px; }
 .chart { position: relative; width: 100%; }
 .chart svg { display: block; width: 100%; overflow: visible; }
-.tip { position: absolute; pointer-events: none; background: var(--surface); border: 1px solid var(--border);
-  border-radius: 8px; padding: 8px 10px; font-size: 12px; box-shadow: 0 4px 16px rgba(0,0,0,.12); display: none;
-  white-space: nowrap; z-index: 3; }
-.tip b { font-weight: 650; } .tip .row { display: flex; align-items: center; gap: 6px; }
-.grid2c { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-@media (max-width: 760px) { .grid2c { grid-template-columns: 1fr; } }
-table.doses { width: 100%; border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; }
-table.doses th { text-align: right; font-weight: 600; color: var(--ink-2); padding: 6px 8px; border-bottom: 1px solid var(--border); }
+.tip { position: absolute; pointer-events: none; background: var(--surface); border: 1px solid var(--border-2);
+  border-radius: 10px; padding: 9px 11px; font-size: 12px; box-shadow: 0 8px 24px rgba(0,0,0,.14); display: none;
+  white-space: nowrap; z-index: 3; font-variant-numeric: tabular-nums; }
+.tip b { font-weight: 600; } .tip .row { display: flex; align-items: center; gap: 6px; line-height: 1.6; }
+.grid2c { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+@media (max-width: 800px) { .grid2c { grid-template-columns: 1fr; } }
+table.doses { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 13px; font-variant-numeric: tabular-nums; }
+table.doses th { text-align: right; font-weight: 600; color: var(--ink-2); padding: 8px 10px; border-bottom: 1px solid var(--border-2);
+  font-size: 11.5px; text-transform: uppercase; letter-spacing: .05em; }
 table.doses th:first-child, table.doses td:first-child { text-align: left; }
-table.doses td { text-align: right; padding: 6px 8px; border-bottom: 1px solid var(--border); }
-table.doses tr.sel td { background: var(--surface-2); font-weight: 600; }
+table.doses td { text-align: right; padding: 8px 10px; border-bottom: 1px solid var(--border); }
+table.doses tr.sel td { background: color-mix(in srgb, var(--accent) 9%, transparent); font-weight: 600; }
+table.doses tr.sel td:first-child { box-shadow: inset 3px 0 0 var(--accent); }
 table.doses tbody tr { cursor: pointer; } table.doses tbody tr:hover td { background: var(--surface-2); }
-.pill { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 600; }
+.tbl-wrap { overflow-x: auto; margin-top: 12px; }
+.pill { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; padding: 2px 9px 2px 7px;
+  border-radius: 999px; }
 .pill i { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
-.pill.BAIXO i { background: var(--good); } .pill.MODERADO i { background: var(--warn); } .pill.ALTO i { background: var(--crit); }
-.window { padding: 10px 12px; border-radius: 9px; background: var(--surface-2); font-size: 14px; margin-bottom: 10px; }
-.mech { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-bottom: 10px; }
-@media (max-width: 760px) { .mech { grid-template-columns: 1fr; } }
-.mech > div { border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; }
-.mech .k { font-size: 12px; color: var(--ink-2); display: flex; align-items: center; gap: 6px; }
-.mech .v { font-size: 20px; font-weight: 650; }
+.pill.BAIXO { background: var(--good-bg); color: var(--good-ink); } .pill.BAIXO i { background: var(--good); }
+.pill.MODERADO { background: var(--warn-bg); color: var(--warn-ink); } .pill.MODERADO i { background: var(--warn); }
+.pill.ALTO { background: var(--crit-bg); color: var(--crit-ink); } .pill.ALTO i { background: var(--crit); }
+.window { padding: 12px 14px; border-radius: 12px; background: var(--surface-2); font-size: 14px; margin-bottom: 12px;
+  border: 1px solid var(--border); display: flex; gap: 12px; align-items: flex-start; }
+.window svg { width: 20px; height: 20px; flex: none; margin-top: 1px; color: var(--ink-2); }
+.mech { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-bottom: 12px; }
+@media (max-width: 800px) { .mech { grid-template-columns: 1fr; } }
+.mech > div { border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; background: var(--surface); }
+.mech .k { font-size: 12.5px; color: var(--ink-2); display: flex; align-items: center; gap: 7px; font-weight: 500; }
+.mech .v { font: 600 24px/1.2 var(--f-display); font-variant-numeric: tabular-nums; margin-top: 2px; }
 .mech .d { font-size: 12px; color: var(--muted); }
-dl.params { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 8px 18px; margin: 0; font-size: 13px; }
-dl.params div { display: flex; justify-content: space-between; gap: 8px; border-bottom: 1px dashed var(--border); padding: 4px 0; }
-dl.params dt { color: var(--ink-2); } dl.params dd { margin: 0; font-weight: 600; font-variant-numeric: tabular-nums; }
-.disclaimer { font-size: 12px; color: var(--ink-2); line-height: 1.5; }
+dl.params { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 0 22px; margin: 0; font-size: 13px; }
+dl.params div { display: flex; justify-content: space-between; gap: 10px; border-bottom: 1px solid var(--border); padding: 8px 0; }
+dl.params dt { color: var(--ink-2); } dl.params dd { margin: 0; font-weight: 600; font-variant-numeric: tabular-nums; text-align: right; }
+.foot { display: flex; gap: 18px; align-items: flex-start; flex-wrap: wrap; }
+.disclaimer { font-size: 12.5px; color: var(--ink-2); line-height: 1.55; margin: 0; flex: 1 1 420px; }
 .actions { display: flex; gap: 8px; flex-wrap: wrap; }
 .hidden { display: none !important; }
 .spin { width: 16px; height: 16px; border: 2px solid rgba(255,255,255,.4); border-top-color: #fff; border-radius: 50%;
   animation: rot .8s linear infinite; }
 @keyframes rot { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .spin, .loading-dots::after { animation: none; } }
 @media print {
-  header.top .icon-btn, aside.form, .actions, .chips { display: none !important; }
-  .layout { grid-template-columns: 1fr; padding: 0; }
-  body { background: #fff; } .card, .tile { box-shadow: none; break-inside: avoid; }
+  .hero { background: none; color: var(--ink); padding: 0 0 12px; } .hero .ecg, .hero .icon-btn, .hero .tags { display: none !important; }
+  .hero .sub { color: var(--ink-2); } .logo { display: none; }
+  aside.form, .actions, .chips { display: none !important; }
+  .layout { grid-template-columns: 1fr; padding: 0; margin: 0; }
+  body { background: #fff; } .card, .tile, .risk { box-shadow: none; break-inside: avoid; }
 }
 </style>
 </head>
 <body>
-<header class="top">
-  <div class="logo" aria-hidden="true">
-    <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M3 12h4l2-5 4 10 2-5h6"/></svg>
+<header class="hero">
+  <svg class="ecg" viewBox="0 0 1200 90" preserveAspectRatio="none" aria-hidden="true">
+    <path d="M0 55 H180 l14 -6 l10 6 H260 l8 -42 l10 72 l9 -30 H340 l14 -8 l12 8 H560 l14 -6 l10 6 H640 l8 -42 l10 72 l9 -30 H720 l14 -8 l12 8 H940 l14 -6 l10 6 H1020 l8 -42 l10 72 l9 -30 H1100 l14 -8 l12 8 H1200"
+      fill="none" stroke="#fff" stroke-width="2" stroke-linejoin="round"/></svg>
+  <div class="hero-in">
+    <div class="logo" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3 12h4l2-5 4 10 2-5h6"/></svg>
+    </div>
+    <div>
+      <h1>PBL-6</h1>
+      <div class="sub">Previsão hemodinâmica da indução anestésica com propofol</div>
+    </div>
+    <div class="tags">
+      <span class="tag">PK/PD · NeoPKPD</span>
+      <span class="tag">Windkessel de 4 elementos</span>
+      <span class="tag">Uso educacional e de pesquisa</span>
+      <button class="icon-btn" id="tema" title="Alternar tema claro/escuro" aria-label="Alternar tema claro/escuro">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 0 1 0 16z" fill="currentColor"/></svg><span class="tema-txt">Tema</span></button>
+    </div>
   </div>
-  <div>
-    <h1>PBL-6</h1>
-    <div class="sub">Previsão hemodinâmica da indução anestésica com propofol</div>
-  </div>
-  <span class="badge">Ferramenta educacional e de pesquisa — não substitui o julgamento clínico</span>
-  <button class="icon-btn" id="tema" title="Alternar tema claro/escuro" aria-label="Alternar tema claro/escuro">
-    <svg viewBox="0 0 24 24" width="16" height="16" style="vertical-align:-3px" fill="none" stroke="currentColor" stroke-width="2">
-      <circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 0 1 0 16z" fill="currentColor"/></svg><span class="tema-txt"> Tema</span></button>
 </header>
 
 <div class="layout">
   <aside class="form card">
-    <div class="hd"><h2>Dados pré-indução</h2></div>
-    <form class="bd" id="form" autocomplete="off">
+    <div class="form-hd">
+      <h2>Dados pré-indução</h2>
+      <p>Os valores do monitor calibram o paciente virtual.</p>
+    </div>
+    <form id="form" autocomplete="off">
+      <div class="form-bd">
       <fieldset>
-        <legend>Paciente</legend>
+        <legend><span class="n">1</span>Paciente</legend>
         <div class="grid2">
           <label class="f">Idade<div class="inp"><input id="idade" type="number" inputmode="decimal" min="18" max="95" step="1" value="62"><span class="u">anos</span></div></label>
           <label class="f">Sexo<div class="seg" role="group" aria-label="Sexo">
@@ -193,7 +291,7 @@ dl.params dt { color: var(--ink-2); } dl.params dd { margin: 0; font-weight: 600
         </div>
       </fieldset>
       <fieldset>
-        <legend>Monitor</legend>
+        <legend><span class="n">2</span>Monitor</legend>
         <div class="grid2">
           <label class="f">PAS<div class="inp"><input id="pas" type="number" inputmode="decimal" min="60" max="250" value="148"><span class="u">mmHg</span></div></label>
           <label class="f">PAD<div class="inp"><input id="pad" type="number" inputmode="decimal" min="30" max="150" value="82"><span class="u">mmHg</span></div></label>
@@ -205,7 +303,7 @@ dl.params dt { color: var(--ink-2); } dl.params dd { margin: 0; font-weight: 600
         </details>
       </fieldset>
       <fieldset>
-        <legend>Risco e volemia</legend>
+        <legend><span class="n">3</span>Risco e volemia</legend>
         <div class="grid2">
           <label class="f">ASA<div class="inp"><select id="asa">
             <option value="1">ASA I</option><option value="2" selected>ASA II</option><option value="3">ASA III</option>
@@ -213,19 +311,19 @@ dl.params dt { color: var(--ink-2); } dl.params dd { margin: 0; font-weight: 600
           <label class="f">PVI<div class="inp"><input id="pvi" type="number" inputmode="decimal" min="0" max="60" value="10"><span class="u">%</span></div></label>
           <label class="f">IVCI (veia cava)<div class="inp"><input id="ivci" type="number" inputmode="decimal" min="0" max="100" value="20"><span class="u">%</span></div></label>
           <label class="f">SpO₂<div class="inp"><input id="spo2" type="number" inputmode="decimal" min="70" max="100" value="98"><span class="u">%</span></div></label>
+          <label class="f">Glicemia<div class="inp"><input id="glicemia" type="number" inputmode="decimal" min="40" max="500" value="95"><span class="u">mg/dL</span></div></label>
         </div>
-        <label class="f" style="margin-top:10px">Glicemia<div class="inp"><input id="glicemia" type="number" inputmode="decimal" min="40" max="500" value="95"><span class="u">mg/dL</span></div></label>
-        <div class="dose-total" style="margin-top:6px">Idade &gt; 50, ASA ≥ III, PVI &gt; 13% e IVCI &gt; 40% aumentam a sensibilidade ao propofol. SpO₂ e glicemia são registradas, mas ainda não entram no modelo.</div>
+        <div class="dose-total">Idade &gt; 50, ASA ≥ III, PVI &gt; 13% e IVCI &gt; 40% aumentam a sensibilidade ao propofol. SpO₂ e glicemia são registradas, mas ainda não entram no modelo.</div>
       </fieldset>
       <fieldset>
-        <legend>Protocolo de indução</legend>
-        <label class="f">Dose de propofol</label>
+        <legend><span class="n">4</span>Protocolo de indução</legend>
+        <div class="dose-big"><div class="v" id="doseBig"></div><div class="t" id="doseTotal"></div></div>
         <div class="dose-row">
           <input id="doseR" type="range" min="0.5" max="3" step="0.05" value="1.5" aria-label="Dose em mg/kg">
-          <div class="inp" style="width:116px"><input id="dose" type="number" step="0.05" min="0.25" max="4" value="1.5"><span class="u">mg/kg</span></div>
+          <div class="inp" style="width:112px"><input id="dose" type="number" step="0.05" min="0.25" max="4" value="1.5" aria-label="Dose (mg/kg)"><span class="u">mg/kg</span></div>
         </div>
-        <div class="dose-total" id="doseTotal"></div>
-        <div class="grid2" style="margin-top:10px">
+        <div class="range-scale" style="margin-right:124px"><span>0,5</span><span>1,0</span><span>1,5</span><span>2,0</span><span>2,5</span><span>3,0</span></div>
+        <div class="grid2" style="margin-top:12px">
           <label class="f">Tempo de injeção<div class="inp"><select id="dur">
             <option value="10">10 s</option><option value="20">20 s</option><option value="30" selected>30 s</option>
             <option value="60">1 min</option><option value="120">2 min</option></select></div></label>
@@ -234,37 +332,48 @@ dl.params dt { color: var(--ink-2); } dl.params dd { margin: 0; font-weight: 600
         <label class="f" style="margin-top:10px">Modelo farmacocinético<div class="inp"><select id="modelo">
           <option value="schnider" selected>Schnider</option><option value="marsh">Marsh</option></select></div></label>
       </fieldset>
-      <button class="btn" id="btn" type="submit"><span id="btnTxt">Simular</span></button>
-      <div class="err" id="err" role="alert"></div>
-      <div class="chips" aria-label="Exemplos">
-        <button type="button" class="chip" data-ex="0">62 a, hipertensa</button>
-        <button type="button" class="chip" data-ex="1">28 a, ASA I</button>
-        <button type="button" class="chip" data-ex="2">81 a, aorta rígida</button>
+      </div>
+      <div class="form-ft">
+        <button class="btn" id="btn" type="submit"><span id="btnTxt">Simular</span></button>
+        <div class="err" id="err" role="alert"></div>
+        <div class="chips" aria-label="Exemplos">
+          <span class="lb">Exemplos:</span>
+          <button type="button" class="chip" data-ex="0">62 a, hipertensa</button>
+          <button type="button" class="chip" data-ex="1">28 a, ASA I</button>
+          <button type="button" class="chip" data-ex="2">81 a, aorta rígida</button>
+        </div>
       </div>
     </form>
   </aside>
 
   <main id="main">
     <section class="card empty" id="vazio">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4l2-5 4 10 2-5h6"/></svg>
-      <h2>Preencha os dados do monitor e clique em Simular</h2>
+      <div class="ill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4l2-5 4 10 2-5h6"/></svg></div>
+      <h2>Preveja a pressão arterial antes da injeção</h2>
       <p>O simulador cria um paciente virtual com a hemodinâmica deste paciente e prevê a curva de pressão
-        para a dose escolhida — antes da injeção.</p>
-      <p style="font-size:13px">Modelo: NeoPKPD (PK/PD) + Windkessel de 4 elementos (windkessel-id), como no PropofolPBL do grupo.</p>
+        para a dose escolhida.</p>
+      <div class="steps">
+        <div><b>1 · Dados</b><span>Idade, peso, altura e o monitor pré-indução (PAS, PAD, FC).</span></div>
+        <div><b>2 · Protocolo</b><span>Dose em mg/kg, tempo de injeção e manutenção.</span></div>
+        <div><b>3 · Simular</b><span>Curva de PAM, risco de hipotensão e faixa de dose sugerida.</span></div>
+      </div>
     </section>
 
-    <div id="res" class="hidden" style="display:flex;flex-direction:column;gap:16px">
-      <div class="risk" id="risk">
-        <div class="ic" id="riskIc"></div>
-        <div>
-          <div class="lbl">Risco previsto de hipotensão</div>
-          <div class="lvl" id="riskLvl"></div>
+    <div id="res" class="hidden" style="display:flex;flex-direction:column;gap:18px">
+      <section class="card risk" id="risk">
+        <div class="top">
+          <div class="ic" id="riskIc"></div>
+          <div>
+            <div class="lbl">Risco previsto de hipotensão</div>
+            <div class="lvl" id="riskLvl"></div>
+          </div>
+          <div class="txt" id="riskTxt"></div>
         </div>
-        <div class="txt" id="riskTxt"></div>
-      </div>
+        <div class="meter" id="meter" aria-label="Régua da PAM: basal, mínima prevista e faixas de 55 e 65 mmHg"></div>
+      </section>
 
       <div class="tiles">
-        <div class="tile"><div class="k">PAM: basal → mínima</div><div class="v" id="tNadir"></div><div class="s" id="tNadirS"></div></div>
+        <div class="tile"><div class="k">PAM basal → mínima</div><div class="v" id="tNadir"></div><div class="s" id="tNadirS"></div></div>
         <div class="tile"><div class="k">Tempo com PAM &lt; 65</div><div class="v" id="t65"></div><div class="s" id="t65S"></div></div>
         <div class="tile"><div class="k">Chance de PAM &lt; 65</div><div class="v" id="p65"></div><div class="s">considerando a variabilidade entre pacientes</div></div>
         <div class="tile"><div class="k">Chance de PAM &lt; 55</div><div class="v" id="p55"></div><div class="s">limiar associado a lesão de órgãos</div></div>
@@ -272,7 +381,7 @@ dl.params dt { color: var(--ink-2); } dl.params dd { margin: 0; font-weight: 600
       </div>
 
       <section class="card">
-        <div class="hd"><h2>Pressão arterial prevista</h2><span class="hint">20 minutos após o início do bolus · passe o mouse para ver os valores</span></div>
+        <div class="hd"><span class="idx">01</span><h2>Pressão arterial prevista</h2><span class="hint">20 minutos após o início do bolus · passe o mouse para ver os valores</span></div>
         <div class="bd">
           <div class="legend" id="legPA"></div>
           <div class="chart" id="chPA"></div>
@@ -280,29 +389,29 @@ dl.params dt { color: var(--ink-2); } dl.params dd { margin: 0; font-weight: 600
       </section>
 
       <div class="grid2c">
-        <section class="card"><div class="hd"><h2>Frequência cardíaca</h2><span class="hint">bpm</span></div><div class="bd"><div class="chart" id="chFC"></div></div></section>
-        <section class="card"><div class="hd"><h2>Débito cardíaco</h2><span class="hint">L/min</span></div><div class="bd"><div class="chart" id="chDC"></div></div></section>
-        <section class="card"><div class="hd"><h2>Profundidade anestésica (BIS)</h2><span class="hint">faixa-alvo 40–60</span></div><div class="bd"><div class="chart" id="chBIS"></div></div></section>
-        <section class="card"><div class="hd"><h2>Concentração de propofol</h2><span class="hint">µg/ml · NeoPKPD</span></div><div class="bd"><div class="legend" id="legCE"></div><div class="chart" id="chCE"></div></div></section>
+        <section class="card"><div class="hd"><span class="idx">02</span><h2>Frequência cardíaca</h2><span class="hint">bpm</span></div><div class="bd"><div class="chart" id="chFC"></div></div></section>
+        <section class="card"><div class="hd"><span class="idx">03</span><h2>Débito cardíaco</h2><span class="hint">L/min</span></div><div class="bd"><div class="chart" id="chDC"></div></div></section>
+        <section class="card"><div class="hd"><span class="idx">04</span><h2>Profundidade anestésica (BIS)</h2><span class="hint">faixa-alvo 40–60</span></div><div class="bd"><div class="chart" id="chBIS"></div></div></section>
+        <section class="card"><div class="hd"><span class="idx">05</span><h2>Concentração de propofol</h2><span class="hint">µg/ml · NeoPKPD</span></div><div class="bd"><div class="legend" id="legCE"></div><div class="chart" id="chCE"></div></div></section>
       </div>
 
       <section class="card">
-        <div class="hd"><h2>Comparar doses</h2><span class="hint">mesmo paciente, mesmo tempo de injeção · clique numa linha para simular</span></div>
+        <div class="hd"><span class="idx">06</span><h2>Comparar doses</h2><span class="hint">mesmo paciente, mesmo tempo de injeção · clique numa linha para simular</span></div>
         <div class="bd">
           <div id="dosesLoad" class="hint loading-dots">Calculando 11 doses</div>
           <div id="dosesOk" class="hidden">
-            <div class="window" id="janela"></div>
+            <div class="window"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg><div id="janela"></div></div>
             <div class="legend" id="legDose"></div>
             <div class="chart" id="chDose"></div>
-            <table class="doses" id="tabDoses" style="margin-top:12px"><thead><tr>
+            <div class="tbl-wrap"><table class="doses" id="tabDoses"><thead><tr>
               <th>Dose</th><th>Total</th><th>PAM mínima</th><th>Queda</th><th>PAM&lt;65</th><th>PAM&lt;55</th><th>BIS mín.</th><th>Risco</th>
-            </tr></thead><tbody></tbody></table>
+            </tr></thead><tbody></tbody></table></div>
           </div>
         </div>
       </section>
 
       <section class="card">
-        <div class="hd"><h2>Por que a pressão cai?</h2><span class="hint">os três efeitos do propofol no modelo (Emax sigmoide sobre Rp, VS e FC)</span></div>
+        <div class="hd"><span class="idx">07</span><h2>Por que a pressão cai?</h2><span class="hint">os três efeitos do propofol no modelo (Emax sigmoide sobre Rp, VS e FC)</span></div>
         <div class="bd">
           <div class="mech" id="mech"></div>
           <div class="legend" id="legMec"></div>
@@ -311,21 +420,21 @@ dl.params dt { color: var(--ink-2); } dl.params dd { margin: 0; font-weight: 600
       </section>
 
       <section class="card">
-        <div class="hd"><h2>Paciente virtual</h2><span class="hint">parâmetros calibrados com os dados pré-indução</span></div>
+        <div class="hd"><span class="idx">08</span><h2>Paciente virtual</h2><span class="hint">parâmetros calibrados com os dados pré-indução</span></div>
         <div class="bd"><dl class="params" id="params"></dl></div>
       </section>
 
       <section class="card">
-        <div class="bd">
-          <div class="actions" style="margin-bottom:10px">
-            <button class="icon-btn" id="print">Imprimir / salvar PDF</button>
-            <button class="icon-btn" id="csv">Baixar curva (CSV)</button>
-          </div>
+        <div class="bd foot" style="padding-top:18px">
           <p class="disclaimer"><b>Uso educacional e de pesquisa.</b> PK/PD do propofol pelo NeoPKPD (Schnider ou Marsh,
             BIS de Eleveld) acoplada a um Windkessel de 4 elementos (windkessel-id, Stergiopulos 1999), seguindo o modelo
             PropofolPBL do grupo. Os parâmetros do efeito hemodinâmico e da sensibilidade são ilustrativos e ainda não foram
             ajustados nem validados com dados de pacientes; o modelo não considera opioides, laringoscopia, fluidos ou
             vasopressores. A decisão clínica é sempre do anestesiologista.</p>
+          <div class="actions">
+            <button class="icon-btn" id="print"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M6 9V3h12v6M6 18H4v-7h16v7h-2M7 14h10v7H7z"/></svg>Imprimir / salvar PDF</button>
+            <button class="icon-btn" id="csv"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5M4 20h16"/></svg>Baixar curva (CSV)</button>
+          </div>
         </div>
       </section>
     </div>
@@ -340,14 +449,14 @@ const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).
 
 // ---------------------------------------------------------------- tema
 (function () {
-  let t = null; try { t = localStorage.getItem("proposim-tema"); } catch (e) {}
+  let t = null; try { t = localStorage.getItem("pbl6-tema"); } catch (e) {}
   if (t) document.documentElement.dataset.theme = t;
   $("tema").onclick = () => {
     const escuro = document.documentElement.dataset.theme === "dark" ||
       (!document.documentElement.dataset.theme && matchMedia("(prefers-color-scheme: dark)").matches);
     const novo = escuro ? "light" : "dark";
     document.documentElement.dataset.theme = novo;
-    try { localStorage.setItem("proposim-tema", novo); } catch (e) {}
+    try { localStorage.setItem("pbl6-tema", novo); } catch (e) {}
     if (ultimo) renderTudo();
   };
 })();
@@ -361,7 +470,8 @@ document.querySelectorAll("[data-sexo]").forEach(b => b.onclick = () => {
 function setSexo(s) { document.querySelector(`[data-sexo="${s}"]`).click(); }
 function atualizaDose() {
   const d = +$("dose").value, p = +$("peso").value;
-  $("doseTotal").innerHTML = p > 0 && d > 0 ? `Total: <b>${fmt(d * p)} mg</b> (${fmt(d, 2)} mg/kg × ${fmt(p, 1)} kg)` : "";
+  $("doseBig").innerHTML = d > 0 ? `${fmt(d, 2)}<small>mg/kg</small>` : "—";
+  $("doseTotal").innerHTML = p > 0 && d > 0 ? `total <b>${fmt(d * p)} mg</b><br>para ${fmt(p, 1)} kg` : "";
 }
 $("doseR").oninput = () => { $("dose").value = $("doseR").value; atualizaDose(); };
 $("dose").oninput = () => { $("doseR").value = $("dose").value; atualizaDose(); };
@@ -444,7 +554,7 @@ function el(tag, attrs, parent) {
 }
 function chart(box, cfg) {
   box.innerHTML = "";
-  const W = Math.max(box.clientWidth, 280), H = cfg.h || 220, m = { l: 42, r: 14, t: 10, b: 30 };
+  const W = Math.max(box.clientWidth, 280), H = cfg.h || 220, m = { l: 42, r: 14, t: cfg.yLabel ? 22 : 12, b: 30 };
   const svg = el("svg", { viewBox: `0 0 ${W} ${H}`, height: H, role: "img", "aria-label": cfg.aria || "" }, box);
   const all = [];
   (cfg.series || []).forEach(s => s.y.forEach(v => v != null && all.push(v)));
@@ -465,6 +575,11 @@ function chart(box, cfg) {
     el("text", { x: X(v), y: H - m.b + 16, "text-anchor": "middle", "font-size": 11, fill: css("--muted") }, g).textContent = fmt(v, cfg.xDec || 0);
   }
   el("line", { x1: m.l, x2: W - m.r, y1: H - m.b, y2: H - m.b, stroke: css("--axis") }, g);
+  if (cfg.yLabel) el("text", { x: m.l - 6, y: 10, "text-anchor": "end", "font-size": 11, fill: css("--muted") }, g).textContent = cfg.yLabel;
+  (cfg.vlines || []).forEach(v => {
+    el("line", { x1: X(v.x), x2: X(v.x), y1: m.t, y2: H - m.b, stroke: css("--axis"), "stroke-width": 1, "stroke-dasharray": "2 3" }, g);
+    if (v.label) el("text", { x: X(v.x) + 5, y: m.t + 10, "font-size": 11, fill: css("--muted") }, g).textContent = v.label;
+  });
   if (cfg.xLabel) el("text", { x: W - m.r, y: H - 2, "text-anchor": "end", "font-size": 11, fill: css("--ink-2") }, g).textContent = cfg.xLabel;
   (cfg.vbands || []).forEach(v => {
     el("rect", { x: X(v.x0), y: m.t, width: Math.max(X(v.x1) - X(v.x0), 0), height: H - m.t - m.b, fill: v.color, opacity: v.op || .12 }, g);
@@ -486,9 +601,18 @@ function chart(box, cfg) {
   el("rect", { x: m.l, y: m.t - 4, width: W - m.l - m.r, height: H - m.t - m.b + 8 }, el("clipPath", { id: clip }, svg));
   (cfg.series || []).forEach(s => {
     let d = ""; s.x.forEach((x, i) => { if (s.y[i] != null) d += (d && s.y[i - 1] != null ? "L" : "M") + X(x).toFixed(1) + "," + Y(s.y[i]).toFixed(1); });
-    el("path", { d, fill: "none", stroke: s.color, "stroke-width": s.w || 2, "stroke-linejoin": "round", "clip-path": `url(#${clip})`,
+    el("path", { d, fill: "none", stroke: s.color, "stroke-width": s.w || 2, "stroke-linejoin": "round", "stroke-linecap": "round", "clip-path": `url(#${clip})`,
       ...(s.dash ? { "stroke-dasharray": s.dash } : {}) }, g);
     if (s.marks) s.x.forEach((x, i) => el("circle", { cx: X(x), cy: Y(s.y[i]), r: 4, fill: s.color, stroke: css("--surface"), "stroke-width": 2 }, g));
+  });
+  (cfg.points || []).forEach(p => {
+    el("circle", { cx: X(p.x), cy: Y(p.y), r: p.r || 5.5, fill: p.color, stroke: css("--surface"), "stroke-width": 2.5 }, g);
+    if (p.label) {
+      const dir = X(p.x) > W * 0.7 ? -1 : 1;
+      const t = el("text", { x: X(p.x) + dir * 10, y: Y(p.y) + (p.dy ?? 18), "text-anchor": dir > 0 ? "start" : "end", "font-size": 12,
+        "font-weight": 600, fill: css("--ink"), stroke: css("--surface"), "stroke-width": 4, "paint-order": "stroke" }, g);
+      t.textContent = p.label;
+    }
   });
   // hover: linha vertical + pontos + caixa com os valores
   const cross = el("line", { y1: m.t, y2: H - m.b, stroke: css("--axis"), "stroke-width": 1, visibility: "hidden" }, svg);
@@ -534,6 +658,45 @@ const ICONES = {
 };
 const minTip = x => `${fmt(x, 1)} min após o bolus`;
 
+// régua da PAM: faixas < 55, 55–65 e ≥ 65 mmHg com a PAM basal, a mínima prevista e a faixa de 90%
+function meter(box, mt, inc) {
+  box.innerHTML = "";
+  const W = Math.max(box.clientWidth, 280), H = 74, m = { l: 8, r: 8 };
+  const lo = 40, hi = Math.max(100, Math.ceil((Math.max(mt.pam_basal, inc ? inc.nadir_p95 : 0) + 6) / 10) * 10);
+  const X = v => m.l + (Math.min(Math.max(v, lo), hi) - lo) / (hi - lo) * (W - m.l - m.r);
+  const svg = el("svg", { viewBox: `0 0 ${W} ${H}`, height: H, role: "img",
+    "aria-label": `PAM basal ${fmt(mt.pam_basal)} e mínima prevista ${fmt(mt.pam_nadir)} mmHg` }, box);
+  const yb = 32, hb = 10;
+  const clip = "m" + Math.random().toString(36).slice(2);
+  el("rect", { x: m.l, y: yb, width: W - m.l - m.r, height: hb, rx: hb / 2 }, el("clipPath", { id: clip }, svg));
+  const gz = el("g", { "clip-path": `url(#${clip})` }, svg);
+  [[lo, 55, "--crit"], [55, 65, "--serious"], [65, hi, "--good"]].forEach(([a, b, c]) =>
+    el("rect", { x: X(a), y: yb, width: X(b) - X(a), height: hb, fill: css(c), opacity: .28 }, gz));
+  [55, 65].forEach(v => el("line", { x1: X(v), x2: X(v), y1: yb, y2: yb + hb, stroke: css("--surface"), "stroke-width": 2 }, gz));
+  for (let v = lo; v <= hi; v += 10) {
+    el("text", { x: X(v), y: yb + hb + 16, "text-anchor": "middle", "font-size": 11, fill: css("--muted") }, svg).textContent = v;
+  }
+  el("text", { x: X(hi), y: yb + hb + 30, "text-anchor": "end", "font-size": 11, fill: css("--muted") }, svg).textContent = "PAM (mmHg)";
+  if (inc) {
+    const yw = yb - 6;
+    el("line", { x1: X(inc.nadir_p05), x2: X(inc.nadir_p95), y1: yw, y2: yw, stroke: css("--ink-2"), "stroke-width": 1.5 }, svg);
+    [inc.nadir_p05, inc.nadir_p95].forEach(v => el("line", { x1: X(v), x2: X(v), y1: yw - 4, y2: yw + 4, stroke: css("--ink-2"), "stroke-width": 1.5 }, svg));
+  }
+  el("line", { x1: X(mt.pam_nadir), x2: X(mt.pam_basal), y1: yb + hb / 2, y2: yb + hb / 2, stroke: css("--ink"), "stroke-width": 2, opacity: .55 }, svg);
+  el("circle", { cx: X(mt.pam_basal), cy: yb + hb / 2, r: 6, fill: css("--surface"), stroke: css("--ink"), "stroke-width": 2 }, svg);
+  el("circle", { cx: X(mt.pam_nadir), cy: yb + hb / 2, r: 7, fill: css("--ink"), stroke: css("--surface"), "stroke-width": 2.5 }, svg);
+  const lab = (x, txt, anchor) => {
+    const t = el("text", { x, y: 12, "text-anchor": anchor, "font-size": 12, fill: css("--ink-2") }, svg);
+    t.innerHTML = txt;
+    const w = t.getComputedTextLength();
+    if (anchor === "end" && x - w < 0) { t.setAttribute("text-anchor", "start"); t.setAttribute("x", 0); }
+    if (anchor === "start" && x + w > W) { t.setAttribute("text-anchor", "end"); t.setAttribute("x", W); }
+  };
+  lab(X(mt.pam_nadir) + 6, `mínima <tspan font-weight="600" fill="${css("--ink")}">${fmt(mt.pam_nadir)}</tspan>` +
+    (inc ? ` · 90%: ${fmt(inc.nadir_p05)}–${fmt(inc.nadir_p95)}` : ""), "end");
+  lab(X(mt.pam_basal) - 6, `basal <tspan font-weight="600" fill="${css("--ink")}">${fmt(mt.pam_basal)}</tspan>`, "start");
+}
+
 function renderTudo() {
   const r = ultimo, mt = r.metricas, b = r.batimentos, s = r.sinais, v = r.virtual;
   const xmax = Math.max(...b.t);
@@ -547,6 +710,7 @@ function renderTudo() {
     <small>${mt.risco === "ALTO" ? "A curva típica cruza 55 mmHg." : mt.risco === "MODERADO"
       ? "Queda acima de 30% ou PAM abaixo de 65 mmHg por pelo menos 1 minuto." : "A curva típica fica acima de 65 mmHg, com queda menor que 30%."}
       ${inc ? ` Considerando a variabilidade entre pacientes, a PAM mínima fica entre ${fmt(inc.nadir_p05)} e ${fmt(inc.nadir_p95)} mmHg em 90% dos casos.` : ""}</small>`;
+  meter($("meter"), mt, inc);
   // blocos
   $("tNadir").innerHTML = `${fmt(mt.pam_basal)} → ${fmt(mt.pam_nadir)} <small>mmHg</small>`;
   $("tNadirS").textContent = `em ${fmt(mt.t_nadir, 1)} min · PA mínima ${fmt(mt.pas_nadir)}/${fmt(mt.pad_nadir)}`;
@@ -570,14 +734,16 @@ function renderTudo() {
     bands, series: [{ x: b.t, y: b.pam, color: S1, label: "PAM", unit: "mmHg", w: 2.5 },
                     { x: b.t, y: b.pas, color: "transparent", label: "PAS", unit: "mmHg" },
                     { x: b.t, y: b.pad, color: "transparent", label: "PAD", unit: "mmHg" }],
-    hlines: [{ y: 65, color: css("--serious"), label: "65" }, { y: 55, color: css("--crit"), label: "55" }] });
-  chart($("chFC"), { xMin: b.t[0], xMax: xmax, xTip: minTip, series: [{ x: b.t, y: b.fc, color: S1, label: "FC", unit: "bpm" }] });
-  chart($("chDC"), { xMin: b.t[0], xMax: xmax, xTip: minTip, zero: true, yDec: 1, series: [{ x: b.t, y: b.dc, color: S1, label: "DC", unit: "L/min", dec: 2 }] });
-  chart($("chBIS"), { xMin: s.t[0], xMax: xmax, xTip: minTip, yMin: 0, yMax: 100, hbands: [{ y0: 40, y1: 60, color: css("--muted"), op: .14 }],
+    hlines: [{ y: 65, color: css("--serious"), label: "65" }, { y: 55, color: css("--crit"), label: "55" }],
+    vlines: [{ x: 0, label: "bolus" }], yLabel: "mmHg",
+    points: [{ x: mt.t_nadir, y: mt.pam_nadir, color: S1, label: `mínima ${fmt(mt.pam_nadir)} mmHg · ${fmt(mt.t_nadir, 1)} min`, dy: 26 }] });
+  chart($("chFC"), { xMin: b.t[0], xMax: xmax, xTip: minTip, vlines: [{ x: 0 }], series: [{ x: b.t, y: b.fc, color: S1, label: "FC", unit: "bpm" }] });
+  chart($("chDC"), { xMin: b.t[0], xMax: xmax, xTip: minTip, zero: true, yDec: 1, vlines: [{ x: 0 }], series: [{ x: b.t, y: b.dc, color: S1, label: "DC", unit: "L/min", dec: 2 }] });
+  chart($("chBIS"), { xMin: s.t[0], xMax: xmax, xTip: minTip, yMin: 0, yMax: 100, vlines: [{ x: 0 }], hbands: [{ y0: 40, y1: 60, color: css("--muted"), op: .14 }],
     series: [{ x: s.t, y: s.bis, color: S1, label: "BIS" }] });
   const ceMax = Math.max(6, 1.4 * Math.max(...s.ce));
   legenda($("legCE"), [{ cor: S1, txt: "plasma (Cp)" }, { cor: S2, txt: "sítio efetor (Ce)" }]);
-  chart($("chCE"), { xMin: s.t[0], xMax: xmax, xTip: minTip, yMin: 0, yMax: ceMax, yDec: 0,
+  chart($("chCE"), { xMin: s.t[0], xMax: xmax, xTip: minTip, yMin: 0, yMax: ceMax, yDec: 0, vlines: [{ x: 0 }],
     series: [{ x: s.t, y: s.cp.map(c => Math.min(c, ceMax)), color: S1, label: "Cp", unit: "µg/ml", dec: 1 },
              { x: s.t, y: s.ce, color: S2, label: "Ce", unit: "µg/ml", dec: 1 }] });
   // mecanismos
@@ -587,7 +753,7 @@ function renderTudo() {
     ["Cronotropismo", "frequência cardíaca", mt.fc_nadir_pct, S3]].map(([t, d, p, c]) =>
     `<div><div class="k"><span class="sw" style="background:${c}"></span>${t}</div><div class="v">${p > 0 ? "+" : ""}${fmt(p)}%</div><div class="d">${d}, no momento da PAM mínima</div></div>`).join("");
   legenda($("legMec"), [{ cor: S1, txt: "resistência periférica" }, { cor: S2, txt: "volume sistólico" }, { cor: S3, txt: "frequência cardíaca" }]);
-  chart($("chMec"), { xMin: b.t[0], xMax: xmax, xTip: minTip, xLabel: "minutos após o início do bolus",
+  chart($("chMec"), { xMin: b.t[0], xMax: xmax, xTip: minTip, xLabel: "minutos após o início do bolus", yLabel: "% do basal", vlines: [{ x: 0 }],
     hlines: [{ y: 0, color: css("--axis") }],
     series: [{ x: b.t, y: b.rp, color: S1, label: "resistência", unit: "%" },
              { x: b.t, y: b.vs, color: S2, label: "volume sistólico", unit: "%" },
@@ -626,7 +792,9 @@ function renderDoses() {
   chart($("chDose"), { h: 220, xMin: x[0], xMax: x[x.length - 1], xDec: 2, xLabel: "dose (mg/kg) · clique para simular",
     xTip: v => `${fmt(v, 2)} mg/kg`, onclick: v => { const dd = Math.round(v * 4) / 4; $("dose").value = $("doseR").value = dd; atualizaDose(); simular(); },
     vbands: j.existe ? [{ x0: j.dose_min, x1: j.dose_max, color: css("--good"), op: .12 }] : [],
-    vbands2: [], series: [{ x, y: d.doses.map(o => o.pam_nadir), color: S1, label: "PAM mínima", unit: "mmHg", marks: true }],
+    series: [{ x, y: d.doses.map(o => o.pam_nadir), color: S1, label: "PAM mínima", unit: "mmHg", marks: true }],
+    points: atual >= x[0] && atual <= x[x.length - 1] ? [{ x: atual, y: ultimo.metricas.pam_nadir, color: css("--ink"), r: 6, label: "dose atual", dy: -12 }] : [],
+    yLabel: "mmHg",
     hlines: [{ y: 65, color: css("--serious"), label: "65" }, { y: 55, color: css("--crit"), label: "55" }] });
   const tb = $("tabDoses").querySelector("tbody");
   tb.innerHTML = d.doses.map(o => `<tr data-d="${o.dose}" class="${Math.abs(o.dose - atual) < 1e-6 ? "sel" : ""}">
