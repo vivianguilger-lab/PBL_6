@@ -18,13 +18,9 @@ PAM mínima           :   65.8 mmHg   em 2.0 min (queda de 37%)
   nesse momento      : PA 94/38, FC 74 bpm, DC 4.41 L/min
 Tempo com PAM < 65   :    0.0 min    AUT = 0 mmHg·min
 Tempo com PAM < 55   :    0.0 min    AUT = 0 mmHg·min
-BIS mínimo           :     14        (BIS < 60 em 0.4 min; por 19.6 min)
+BIS mínimo           :     45        (BIS < 60 em 2.2 min; por 17.8 min)
 Ce máxima            : 6.51 µg/ml
-Risco previsto       : MODERADO
+Risco previsto       : BAIXO
 ────────────────────────────────────────────────────────────────────────
-
-Incerteza (200 sorteios de PK e de resposta hemodinâmica, hemodinâmica basal fixa):
-   PAM mínima: mediana 66 mmHg (faixa 90%: 52–78)
-   P(PAM < 65) = 40%   P(PAM < 55) = 10%   P(BIS < 60) = 100%
 
 Figuras e CSV em: /home/user/PBL_6/resultados

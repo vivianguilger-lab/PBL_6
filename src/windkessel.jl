@@ -212,5 +212,7 @@ function params_stergiopulos1999total()
     C = 1.22      # complacência arterial total [mL/mmHg]
     Rc = 0.056    # resistência característica da aorta [mmHg·s/mL]
     L = 0.0051    # inertância arterial total [mmHg·s²/mL]
-    return [Rp, C, Rc, L], [8.066, -8.296]
+    # estado inicial do windkessel-id v1.0 estava em L/min; aqui tudo é mL/s, então
+    # converte como na v2.0 do windkessel-id (src/WindkesselIdentification.jl#L218)
+    return [Rp, C, Rc, L], [8.066 * 1000 / 60, -8.296]
 end

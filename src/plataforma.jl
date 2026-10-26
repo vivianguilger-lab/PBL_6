@@ -27,7 +27,7 @@ function _ler_paciente(d)
     sexo = uppercase(string(get(pac, "sexo", "M")))
     sexo in ("M", "F") || throw(ArgumentError("Sexo deve ser M ou F."))
     idade, peso, altura = _num(pac["idade"]), _num(pac["peso"]), _num(pac["altura"])
-    pas, pad, fc = _num(pac["pas"]), _num(pac["pad"]), _num(pac["fc"])
+    pas, pad, pam, fc = _num(pac["pas"]), _num(pac["pad"]), _num(pac["pam"]), _num(pac["fc"])
     asa = round(Int, _padrao(pac, "asa", 1.0))
     pvi, ivci = _padrao(pac, "pvi", 10.0), _padrao(pac, "ivci", 20.0)
     _faixa(idade, 18, 95, "Idade fora da faixa do modelo (18–95 anos).")
@@ -35,14 +35,14 @@ function _ler_paciente(d)
     _faixa(altura, 130, 215, "Altura fora da faixa do modelo (130–215 cm).")
     (60 <= pas <= 250 && 30 <= pad <= 150) || throw(ArgumentError("Pressão arterial fora da faixa plausível."))
     pas - pad >= 15 || throw(ArgumentError("A PAS deve ser pelo menos 15 mmHg maior que a PAD."))
+    pad < pam < pas || throw(ArgumentError("A PAM deve ficar entre a PAD e a PAS."))
     _faixa(fc, 35, 160, "Frequência cardíaca fora da faixa plausível (35–160 bpm).")
     _faixa(asa, 1, 5, "ASA deve estar entre 1 e 5.")
     _faixa(pvi, 0, 60, "PVI fora da faixa plausível (0–60%).")
     _faixa(ivci, 0, 100, "IVCI fora da faixa plausível (0–100%).")
     return Paciente(nome = string(get(pac, "nome", "Paciente")), idade = idade, peso = peso, altura = altura,
                     sexo = Symbol(sexo), asa = asa, pas = pas, pad = pad, fc = fc,
-                    pam = _opcional(pac, "pam"), dc = _opcional(pac, "dc"),
-                    spo2 = _padrao(pac, "spo2", 98.0), glicemia = _padrao(pac, "glicemia", 95.0), pvi = pvi, ivci = ivci)
+                    pam = pam, dc = _opcional(pac, "dc"), pvi = pvi, ivci = ivci)
 end
 
 function _ler_protocolo(d)
@@ -50,7 +50,7 @@ function _ler_protocolo(d)
     dose = _num(get(pr, "dose_mgkg", 2.0))
     _faixa(dose, 0, 4, "Dose fora da faixa do simulador (0–4 mg/kg).")
     modelo = Symbol(lowercase(string(get(pr, "modelo_pk", "schnider"))))
-    modelo in (:schnider, :marsh) || throw(ArgumentError("Modelo PK deve ser Schnider ou Marsh."))
+    modelo in (:schnider, :marsh, :eleveld) || throw(ArgumentError("Modelo PK deve ser Schnider, Marsh ou Eleveld."))
     return (dose_mgkg = dose, duracao_bolus = max(_num(get(pr, "duracao_bolus_s", 30.0)), 1.0),
             manutencao_ugkgmin = max(_num(get(pr, "manutencao_ugkgmin", 100.0)), 0.0)), modelo
 end
@@ -74,7 +74,7 @@ function _resumo_virtual(pv::PacienteVirtual)
                 "imc" => _r(imc(p), 1), "modelo_pk" => uppercasefirst(string(pk.modelo)),
                 "cl" => _r(pk.CL, 2), "v1" => _r(pk.V1, 2), "v2" => _r(pk.V2, 1), "v3" => _r(pk.V3, 0),
                 "ke0" => _r(pk.ke0, 3), "ce50_bis" => _r(3.08 * exp(-0.00635 * (p.idade - 35)), 2),
-                "spo2" => _r(p.spo2, 0), "glicemia" => _r(p.glicemia, 0))
+                "ke0_bis" => _r(parametros_eleveld(p).ke0, 3), "atraso_bis" => _r(atraso_bis(p.idade), 0))
 end
 
 function _api_simular(d)
@@ -110,17 +110,6 @@ function _api_simular(d)
             "fcp" => _rv(100 .* (b.FC ./ p.fc .- 1), 1)),
         "sinais" => Dict("t" => _rv(k.t[idx] .- t0, 3), "bis" => _rv(k.bis[idx], 1),
                          "cp" => _rv(k.Cp[idx], 2), "ce" => _rv(k.Ce[idx], 2)))
-end
-
-function _api_incerteza(d)
-    p = _ler_paciente(d)
-    pr, modelo = _ler_protocolo(d)
-    n = clamp(round(Int, _num(get(d, "n", 100))), 10, 400)
-    inc = previsao_com_incerteza(_virtual(p, modelo); n, pr...)
-    return Dict("t" => _rv(inc.t, 3), "p05" => _rv(inc.p05, 1), "mediana" => _rv(inc.mediana, 1),
-                "p95" => _rv(inc.p95, 1), "prob65" => _r(inc.prob_pam65, 3), "prob55" => _r(inc.prob_pam55, 3),
-                "prob_hipnose" => _r(inc.prob_hipnose, 3), "nadir_mediano" => _r(inc.nadir_mediano, 0),
-                "nadir_p05" => _r(inc.nadir_p05, 0), "nadir_p95" => _r(inc.nadir_p95, 0), "n" => n)
 end
 
 """Interpola o ponto em que `y` cruza `alvo` numa varredura monótona."""
@@ -161,9 +150,9 @@ function _rotear(req::HTTP.Request)
             return HTTP.Response(200, ["Content-Type" => "text/html; charset=utf-8"], read(_HTML, String))
         elseif req.method == "GET" && alvo == "/api/saude"
             return _json(200, Dict("ok" => true, "versao" => string(pkgversion(@__MODULE__))))
-        elseif req.method == "POST" && alvo in ("/api/simular", "/api/incerteza", "/api/doses")
+        elseif req.method == "POST" && alvo in ("/api/simular", "/api/doses")
             d = JSON.parse(String(req.body))
-            f = alvo == "/api/simular" ? _api_simular : alvo == "/api/incerteza" ? _api_incerteza : _api_doses
+            f = alvo == "/api/simular" ? _api_simular : _api_doses
             return _json(200, f(d))
         end
         return HTTP.Response(404, "não encontrado")
@@ -198,12 +187,10 @@ computador. Para encerrar: `close(servidor)` ou feche o Julia.
 function plataforma(; porta = 8080, abrir = true, aquecer = true)
     if aquecer
         println("Preparando o simulador (na primeira vez leva cerca de 1 minuto)...")
-        ex = Paciente(idade = 50, peso = 70, altura = 170, sexo = :M, pas = 125, pad = 75, fc = 70)
         corpo = Dict("paciente" => Dict("idade" => 50, "peso" => 70, "altura" => 170, "sexo" => "M",
-                                        "pas" => 125, "pad" => 75, "fc" => 70),
-                     "protocolo" => Dict("dose_mgkg" => 1.0), "n" => 10)
+                                        "pas" => 125, "pad" => 75, "pam" => 92, "fc" => 70),
+                     "protocolo" => Dict("dose_mgkg" => 1.0))
         JSON.json(_api_simular(corpo))
-        previsao_com_incerteza(_virtual(ex, :schnider); n = 2, janela = 2.0)
         JSON.json(_api_doses(corpo))
     end
     srv = nothing

@@ -7,5 +7,6 @@ o mesmo repositório usado pelo grupo em
 - `stergiopulos1999_data/`: batimento tipo A humano de Stergiopulos et al. (1999), *Total arterial
   inertance as the fourth element of the Windkessel model*, Am J Physiol 276:H81. Pressão em mmHg,
   fluxo em mL/s, amostrado a 5 ms. O fluxo é a forma de onda que alimenta o Windkessel do modelo.
-- `invivo_data/`: pressão e fluxo aórticos medidos in vivo num porco de 70 kg. Pressão em mmHg,
+- `invivo_data/`: pressão e fluxo aórticos medidos in vivo em porcos de 65 kg (a v1.0 do windkessel-id
+  dizia "70 kg"; a v2.0 corrigiu para "two 65 kg pigs", README linha 78). Pressão em mmHg,
   fluxo em L/min. Usados no exemplo de identificação do Windkessel.

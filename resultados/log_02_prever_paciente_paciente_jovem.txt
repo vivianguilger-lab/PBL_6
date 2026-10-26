@@ -4,8 +4,8 @@
 
 2) Paciente virtual
 Paciente virtual — Paciente B - 28 anos, ASA I: 28 anos, masc., 80 kg, 180 cm, ASA 1 | PA 124/72 (PAM 89) mmHg | FC 74 bpm | DC 6.00 L/min (estimado) | PVI 9%, IVCI 15%
-  PA do modelo 114/62 (PAM 89.4) mmHg | medida 124/72 (PAM 89.3)
-  Windkessel 4 elementos: Rp = 0.893 mmHg·s/ml, C = 0.89 ml/mmHg, Rc = 0.056, L = 0.0051 | τ = Rp·C = 0.80 s
+  PA do modelo 114/62 (PAM 89.1) mmHg | medida 124/72 (PAM 89.0)
+  Windkessel 4 elementos: Rp = 0.890 mmHg·s/ml, C = 0.89 ml/mmHg, Rc = 0.056, L = 0.0051 | τ = Rp·C = 0.80 s
   DC 6.00 L/min, VS 81 ml | sensibilidade hemodinâmica s = 1.00
   PK (schnider): CL 1.85 L/min, V1 4.27 L, V2 28.7 L, V3 238 L, ke0 0.456 /min
 
@@ -13,18 +13,14 @@ Paciente virtual — Paciente B - 28 anos, ASA I: 28 anos, masc., 80 kg, 180 cm,
 ────────────────────────────────────────────────────────────────────────
 Previsão hemodinâmica — Paciente B - 28 anos, ASA I
 ────────────────────────────────────────────────────────────────────────
-PAM basal            :   89.4 mmHg   (FC 74 bpm, DC 6.00 L/min)
-PAM mínima           :   57.3 mmHg   em 1.8 min (queda de 36%)
-  nesse momento      : PA 80/35, FC 71 bpm, DC 4.96 L/min
-Tempo com PAM < 65   :    5.5 min    AUT = 27 mmHg·min
+PAM basal            :   89.1 mmHg   (FC 74 bpm, DC 6.00 L/min)
+PAM mínima           :   57.1 mmHg   em 1.8 min (queda de 36%)
+  nesse momento      : PA 79/35, FC 71 bpm, DC 4.96 L/min
+Tempo com PAM < 65   :    5.6 min    AUT = 28 mmHg·min
 Tempo com PAM < 55   :    0.0 min    AUT = 0 mmHg·min
-BIS mínimo           :     12        (BIS < 60 em 0.4 min; por 19.6 min)
+BIS mínimo           :     46        (BIS < 60 em 1.7 min; por 18.3 min)
 Ce máxima            : 8.68 µg/ml
 Risco previsto       : MODERADO
 ────────────────────────────────────────────────────────────────────────
-
-Incerteza (200 sorteios de PK e de resposta hemodinâmica, hemodinâmica basal fixa):
-   PAM mínima: mediana 58 mmHg (faixa 90%: 47–65)
-   P(PAM < 65) = 94%   P(PAM < 55) = 34%   P(BIS < 60) = 100%
 
 Figuras e CSV em: /home/user/PBL_6/resultados

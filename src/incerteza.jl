@@ -2,6 +2,9 @@
 # incerteza.jl — previsão individual com faixa de incerteza
 # =============================================================================
 #
+# EXPERIMENTAL — NÃO VALIDADO: usa as variabilidades de populacao.jl, que ainda
+# não têm validação (docs/validacao.md). Fora da plataforma e dos resultados.
+#
 # O paciente virtual tem a SUA hemodinâmica basal (calibrada com os dados
 # pré-indução), mas a sensibilidade dele ao propofol é desconhecida antes da
 # injeção. Mantemos a calibração e sorteamos a PK (Schnider) e a resposta

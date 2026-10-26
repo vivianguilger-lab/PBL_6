@@ -7,7 +7,8 @@
 # que usa o NeoPKPD (github.com/shramish2057/NeoPKPD) como motor:
 #   - modelo tricompartimental (ThreeCompIVBolus) com bolus e infusões;
 #   - compartimento de efeito (ke0) por simulate_biophase;
-#   - BIS de Eleveld et al. (2018).
+#   - BIS de Eleveld et al. (2018), calculado com o modelo de Eleveld completo
+#     (PK + ke0 + atraso), independente do modelo PK escolhido para a hemodinâmica.
 # Tempo em minutos, doses em mg, volumes em L ⇒ concentrações em mg/L = µg/ml.
 # =============================================================================
 
@@ -15,20 +16,29 @@
     parametros_pk(pac, modelo=:schnider; eta=NamedTuple())
 
 Parâmetros PK do propofol `(CL, V1, Q2, V2, Q3, V3, ke0)` [L/min, L, 1/min].
-`modelo = :schnider` (Schnider et al. 1998/1999) ou `:marsh` (Marsh et al. 1991,
-ke0 = 0,26/min). `eta` multiplica qualquer parâmetro por um fator (variabilidade
-interindividual usada na faixa de incerteza e na coorte virtual).
+
+- `:schnider` — PK de Schnider et al. 1998 e ke0 = 0,456/min de Schnider et al. 1999.
+- `:marsh` — PK de Marsh et al. 1991. O ke0 = 0,26/min não é desse artigo: é o valor
+  das bombas Diprifusor, nunca publicado em revista (Absalom et al. 2009).
+- `:eleveld` — PK de Eleveld et al. 2018 (ver `parametros_eleveld`).
+
+`eta` multiplica qualquer parâmetro por um fator (variabilidade interindividual,
+usada só nas análises experimentais de incerteza e coorte).
 """
 function parametros_pk(pac::Paciente, modelo::Symbol = :schnider; eta = NamedTuple())
     if modelo == :schnider
         lbm = massa_magra(pac)
         V1 = 4.27
-        V2 = max(18.9 - 0.391 * (pac.idade - 53), 1.0)
+        V2 = 18.9 - 0.391 * (pac.idade - 53)
         V3 = 238.0
-        CL = max(1.89 + 0.0456 * (pac.peso - 77) - 0.0681 * (lbm - 59) + 0.0264 * (pac.altura - 177), 0.2)
-        Q2 = max(1.29 - 0.024 * (pac.idade - 53), 0.1)
+        CL = 1.89 + 0.0456 * (pac.peso - 77) - 0.0681 * (lbm - 59) + 0.0264 * (pac.altura - 177)
+        Q2 = 1.29 - 0.024 * (pac.idade - 53)
         Q3 = 0.836
         ke0 = 0.456
+        # as equações lineares de Schnider ficam negativas fora da faixa de adultos
+        # (ex.: V2 < 0 acima de 101 anos); nesse caso o modelo não se aplica
+        min(V2, CL, Q2) > 0 ||
+            throw(ArgumentError("paciente fora da faixa de validade do modelo de Schnider (V2, CL ou Q2 ≤ 0)"))
     elseif modelo == :marsh
         V1 = 0.228 * pac.peso
         CL = 0.119 * V1
@@ -37,6 +47,9 @@ function parametros_pk(pac::Paciente, modelo::Symbol = :schnider; eta = NamedTup
         Q3 = 0.0419 * V1
         V3 = Q3 / 0.0033
         ke0 = 0.26
+    elseif modelo == :eleveld
+        e = parametros_eleveld(pac)
+        CL, V1, Q2, V2, Q3, V3, ke0 = e.CL, e.V1, e.Q2, e.V2, e.Q3, e.V3, e.ke0
     else
         throw(ArgumentError("modelo PK desconhecido: $(modelo)"))
     end
@@ -70,43 +83,98 @@ function esquema_inducao(pac::Paciente; bolus_mgkg = 2.0, duracao_bolus = 0.5, m
 end
 
 """
+    parametros_eleveld(pac; arterial=true, opioides=false)
+
+PK do propofol de Eleveld et al. 2018 (Tabela 2) e ke0 do BIS (Tabela 3), na forma
+do Python Anesthesia Simulator (pk_models.py, linhas 256–335, commit 4afc03a).
+Massa livre de gordura de Al-Sallami; idade pós-menstrual = idade + 40 semanas.
+`arterial = true` usa os parâmetros de amostras arteriais (ke0 = 0,146/min a 70 kg);
+`opioides = false` porque o contexto de uso é a indução sem opioide.
+"""
+function parametros_eleveld(pac::Paciente; arterial = true, opioides = false)
+    θ = (6.2830780766822, 25.5013145036879, 272.8166615043603, 1.7895836588902, 1.7500983738779,
+         1.1085424008536, 0.191307, 42.2760190602615, 9.0548452392807, -0.015633, -0.00285709,
+         33.5531248778544, -0.0138166, 68.2767978846832, 2.1002218877899, 1.3042680471360,
+         1.4189043652084, 0.6805003109141)
+    idade, peso, homem = pac.idade, pac.peso, pac.sexo == :M
+    sig(x, c50, γ) = x^γ / (c50^γ + x^γ)
+    fcentral(w) = sig(w, θ[12], 1)
+    fenv(x) = exp(x * (idade - 35))
+    al_sallami(h, w, a, imc) = h ? (0.88 + 0.12 / (1 + (a / 13.4)^-12.7)) * 9270 * w / (6680 + 216 * imc) :
+                                   (1.11 - 0.11 / (1 + (a / 7.1)^-1.1)) * 9270 * w / (8780 + 244 * imc)
+    pma, pma_ref = (idade + 40 / 52) * 52, (35 + 40 / 52) * 52          # semanas
+    fCLmat, fCLmat_ref = sig(pma, θ[8], θ[9]), sig(pma_ref, θ[8], θ[9])
+    fQ3mat, fQ3mat_ref = sig(pma, θ[14], 1), sig(pma_ref, θ[14], 1)
+    ffm, ffm_ref = al_sallami(homem, peso, idade, imc(pac)), al_sallami(true, 70.0, 35.0, 70 / 1.7^2)
+    fop(x) = opioides ? exp(x * idade) : 1.0
+    V1 = θ[1] * fcentral(peso) / fcentral(70.0)
+    arterial || (V1 *= 1 + θ[17] * (1 - fcentral(peso)))
+    V2 = θ[2] * peso / 70 * fenv(θ[10])
+    V3 = θ[3] * ffm / ffm_ref * fop(θ[13])
+    CL = (homem ? θ[4] : θ[15]) * (peso / 70)^0.75 * fCLmat / fCLmat_ref * fop(θ[11])
+    Q2 = θ[5] * (V2 / θ[2])^0.75 * (1 + θ[16] * (1 - fQ3mat))
+    arterial || (Q2 *= θ[18])
+    Q3 = θ[6] * (V3 / θ[3])^0.75 * fQ3mat / fQ3mat_ref
+    ke0 = (arterial ? 0.146 : 1.24) * (peso / 70)^-0.25
+    return (CL = CL, V1 = V1, Q2 = Q2, V2 = V2, Q3 = Q3, V3 = V3, ke0 = ke0)
+end
+
+"""
     bis_eleveld(Ce, idade)
 
-BIS em função da concentração no sítio efetor (sigmoide de Eleveld et al. 2018):
-E0 = 93, Ce50 = 3,08·exp(−0,00635·(idade − 35)) µg/ml, γ = 1,47 abaixo de Ce50
-e 1,89 acima. O Ce vem do ke0 do modelo PK escolhido (aproximação do grupo).
+BIS em função da concentração no sítio efetor do modelo de Eleveld et al. 2018
+(Tabela 3): E0 = 93, Ce50 = 3,08·exp(−0,00635·(idade − 35)) µg/ml,
+γ = 1,89 para Ce ≤ Ce50 e 1,47 acima.
 """
 function bis_eleveld(Ce, idade)
     E0 = 93.0
     Ce50 = 3.08 * exp(-0.00635 * (idade - 35))
-    γ = Ce <= Ce50 ? 1.47 : 1.89
+    γ = Ce <= Ce50 ? 1.89 : 1.47
     c = max(Float64(Ce), 0.0)
     return E0 - E0 * c^γ / (Ce50^γ + c^γ)
+end
+
+"Atraso do BIS [s] de Eleveld et al. 2018 (Tabela 3, θ = 0,0517): 15 + e^(0,0517·idade)."
+atraso_bis(idade) = 15 + exp(0.0517 * idade)
+
+# Cp e Ce na grade (min) para os parâmetros `pk`, pelo NeoPKPD
+function _cp_ce(pk, doses, grade)
+    spec = ModelSpec(ThreeCompIVBolus(), "propofol",
+                     ThreeCompIVBolusParams(pk.CL, pk.V1, pk.Q2, pk.V2, pk.Q3, pk.V3),
+                     sort(doses; by = d -> d.time))
+    solver = SolverSpec(:Tsit5, 1e-8, 1e-10, 10^7)
+    res = NeoPKPD.simulate(spec, SimGrid(grade[1], grade[end], grade), solver)
+    # max(…, 0) só remove ruído numérico do integrador (valores da ordem de −1e−12)
+    Cp = max.(res.observations[:conc], 0.0)
+    Ce, _ = simulate_biophase(res.t, Cp, BiophaseEquilibrationParams(pk.ke0, 0.0, 1.0, 1.0), solver)
+    return res.t, Cp, max.(Ce, 0.0)
 end
 
 """
     simular_propofol(pac, doses; modelo=:schnider, tfim=60.0, dt=1/60, pk=parametros_pk(pac, modelo))
 
-Simula a PK/PD do propofol com o NeoPKPD. Retorna `(t, Cp, Ce, bis, pk)` com
-t em minutos e concentrações em µg/ml.
+Simula o propofol com o NeoPKPD. Retorna `(t, Cp, Ce, bis, Ce_bis, pk)`, t em minutos
+e concentrações em µg/ml:
+
+- `Cp`, `Ce`: plasma e sítio efetor do modelo PK escolhido (`pk`), que movem a hemodinâmica;
+- `bis`: BIS do modelo de Eleveld completo — PK e ke0 de Eleveld (`Ce_bis`), sigmoide
+  de Eleveld e atraso de 15 + e^(0,0517·idade) s —, porque o Ce50 de 3,08 µg/ml só vale
+  com o PK e o ke0 com que foi estimado.
 """
 function simular_propofol(pac::Paciente, doses::Vector{DoseEvent}; modelo = :schnider,
                           tfim = 60.0, dt = 1 / 60, pk = parametros_pk(pac, modelo))
     grade = collect(0.0:dt:tfim)
     if isempty(doses)          # sem fármaco: tudo zero (NeoPKPD exige ao menos uma dose)
         z = zeros(length(grade))
-        return (t = grade, Cp = z, Ce = copy(z), bis = fill(bis_eleveld(0.0, pac.idade), length(grade)), pk = pk)
+        return (t = grade, Cp = z, Ce = copy(z), bis = fill(bis_eleveld(0.0, pac.idade), length(grade)),
+                Ce_bis = copy(z), pk = pk)
     end
-    spec = ModelSpec(ThreeCompIVBolus(), "propofol_$(pk.modelo)",
-                     ThreeCompIVBolusParams(pk.CL, pk.V1, pk.Q2, pk.V2, pk.Q3, pk.V3),
-                     sort(doses; by = d -> d.time))
-    grid = SimGrid(0.0, Float64(tfim), grade)
-    solver = SolverSpec(:Tsit5, 1e-8, 1e-10, 10^7)
-    res = NeoPKPD.simulate(spec, grid, solver)
-    Cp = max.(res.observations[:conc], 0.0)
-    Ce, _ = simulate_biophase(res.t, Cp, BiophaseEquilibrationParams(pk.ke0, 0.0, 1.0, 1.0), solver)
-    Ce = max.(Ce, 0.0)
-    return (t = res.t, Cp = Cp, Ce = Ce, bis = bis_eleveld.(Ce, pac.idade), pk = pk)
+    t, Cp, Ce = _cp_ce(pk, doses, grade)
+    _, _, Ce_bis = _cp_ce(parametros_pk(pac, :eleveld), doses, grade)
+    bis0 = bis_eleveld.(Ce_bis, pac.idade)
+    d = atraso_bis(pac.idade) / 60                  # min
+    bis = [interp(t, bis0, max(ti - d, t[1])) for ti in t]
+    return (t = t, Cp = Cp, Ce = Ce, bis = bis, Ce_bis = Ce_bis, pk = pk)
 end
 
 "Matriz K do sistema dA/dt = K·A (1/min), para o teste de verificação contra exp(K·t)."

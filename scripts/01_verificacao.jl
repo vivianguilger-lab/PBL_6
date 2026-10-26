@@ -23,7 +23,7 @@ errA = maximum(abs.(y .- exata) ./ exata)
 @printf("A. Windkessel 2 elementos (τ = Rp·C = %.1f s): erro relativo máximo = %.2e\n", Rp * C, errA)
 
 # --- B. NeoPKPD contra exp(K·t) -----------------------------------------------------
-ref = Paciente(idade = 53, peso = 77, altura = 177, sexo = :M, pas = 125, pad = 75, fc = 70)
+ref = Paciente(idade = 53, peso = 77, altura = 177, sexo = :M, pas = 125, pad = 75, pam = 92, fc = 70)
 pk = parametros_pk(ref, :schnider)
 D = 2.0 * ref.peso
 r = simular_propofol(ref, [bolus(0.0, D; duracao = 0.0)]; tfim = 20.0)

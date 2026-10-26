@@ -2,6 +2,11 @@
 # populacao.jl — coorte virtual (virtual clinical trial) e variabilidade
 # =============================================================================
 #
+# EXPERIMENTAL — NÃO VALIDADO. As variabilidades abaixo e as distribuições da
+# coorte são suposições; os resultados não são usados na plataforma nem nos
+# resultados do README (pendências em docs/validacao.md). Leitura das variâncias
+# de Schnider (ω² ou coeficiente de variação) ainda a confirmar na tabela do artigo.
+#
 # Variabilidade interindividual (IIV) log-normal: θᵢ = θ·exp(ηᵢ), ηᵢ ~ N(0, ω²)
 #   PK  — variâncias de Schnider et al. 1998 (V1, V2, V3, CL, Q2, Q3); ke0: ω = 0,3 (assumido)
 #   Hemodinâmica — Ce50 e Imax do EfeitoHemodinamico do grupo: ω = 0,3 (assumido,
@@ -43,9 +48,9 @@ dose_padrao(idade) = idade < 55 ? 2.0 : (idade < 70 ? 1.5 : 1.2)
 """
     gerar_coorte(n; rng=Xoshiro(2026))
 
-`n` adultos virtuais com demografia, PA/FC pré-indução, ASA, PVI, IVCI, SpO₂,
-glicemia e IIV de PK e da resposta hemodinâmica. Distribuições: suposições
-plausíveis para adultos cirúrgicos.
+`n` adultos virtuais com demografia, PA/FC pré-indução, ASA, PVI, IVCI e IIV de
+PK e da resposta hemodinâmica. Experimental: as distribuições são suposições, sem
+fonte (docs/validacao.md).
 """
 function gerar_coorte(n; rng = Xoshiro(2026), variabilidade_dose = 0.1)
     coorte = Individuo[]
@@ -61,9 +66,9 @@ function gerar_coorte(n; rng = Xoshiro(2026), variabilidade_dose = 0.1)
         asa = idade < 40 ? (u < 0.6 ? 1 : 2) : idade < 65 ? (u < 0.2 ? 1 : u < 0.8 ? 2 : 3) : (u < 0.55 ? 2 : u < 0.95 ? 3 : 4)
         pvi = _trunc(rng, 12.0, 5.0, 3.0, 35.0)
         ivci = _trunc(rng, 25.0, 13.0, 0.0, 80.0)
+        # dados sintéticos: a PAM do indivíduo virtual é gerada a partir de PAS e PAD
         p = Paciente(nome = "virtual_$(i)", idade = idade, peso = peso, altura = altura, sexo = sexo, asa = asa,
-                     pas = pas, pad = pad, fc = fc, pvi = pvi, ivci = ivci,
-                     spo2 = _trunc(rng, 97.5, 1.5, 90.0, 100.0), glicemia = _trunc(rng, 100.0, 15.0, 70.0, 200.0))
+                     pas = pas, pad = pad, pam = pad + (pas - pad) / 3, fc = fc, pvi = pvi, ivci = ivci)
         dose = dose_padrao(idade) * (1 + variabilidade_dose * (2 * rand(rng) - 1))
         push!(coorte, Individuo(p, amostrar_eta_pk(rng), amostrar_efeito(rng), dose))
     end

@@ -3,9 +3,12 @@
 # =============================================================================
 #
 # Hipotensão pós-indução: queda de PA nos primeiros 20 min após a indução.
-# 17–24% dos adultos têm PAM < 55 mmHg; PAM ≤ 55 mmHg sustentada associa-se a
-# lesão miocárdica e lesão renal aguda. Por isso o relatório usa dois limiares
-# (65 e 55 mmHg) e a área abaixo do limiar (AUT, mmHg·min).
+# Limiares (docs/validacao.md):
+#   - 55 mmHg: mesmo curtos períodos de PAM < 55 associam-se a lesão renal aguda
+#     e lesão miocárdica (Walsh et al. 2013);
+#   - 65 mmHg: PAM < 65 associa-se a lesão de órgãos (Salmasi et al. 2017; faixa
+#     de 60–70 mmHg no consenso de Sessler et al. 2019).
+# O relatório dá o tempo e a área abaixo de cada limiar (AUT, mmHg·min).
 # =============================================================================
 
 """
@@ -31,8 +34,8 @@ function metricas(r::Resultado; janela = 20.0, limiares = (65.0, 55.0), alvo_bis
     ib = findfirst(<(alvo_bis), bis)
     dt = length(k.t) > 1 ? k.t[2] - k.t[1] : 0.0
     lmin, lmax = minimum(limiares), maximum(limiares)
-    risco = tempo_abaixo[lmin] > 0 ? "ALTO" :
-            (tempo_abaixo[lmax] >= 1.0 || pam[i] < 0.7 * pam0) ? "MODERADO" : "BAIXO"
+    # risco pela PAM mínima prevista frente aos dois limiares
+    risco = pam[i] < lmin ? "ALTO" : pam[i] < lmax ? "MODERADO" : "BAIXO"
     return (pam_basal = pam0, fc_basal = fc0, dc_basal = dc0,
             pam_nadir = pam[i], t_nadir = b.t_min[j] - t0, queda_pct = 100 * (1 - pam[i] / pam0),
             pas_nadir = b.PAS[j], pad_nadir = b.PAD[j], fc_no_nadir = b.FC[j], dc_no_nadir = b.DC[j],

@@ -7,16 +7,18 @@
                spo2, glicemia, pvi, ivci)
 
 Dados que o anestesista tem antes da injeção. Unidades: idade em anos, peso em
-kg, altura em cm, pressões em mmHg, FC em bpm, DC em L/min, SpO₂ em %,
-glicemia em mg/dL, PVI e IVCI em %.
+kg, altura em cm, pressões em mmHg, FC em bpm, DC em L/min, PVI e IVCI em %.
 
-Uso no modelo (como no PropofolPBL do grupo):
-- PK (Schnider/Marsh): idade, peso, altura, sexo.
-- PD (BIS, Eleveld): idade.
-- Hemodinâmica basal (Windkessel): PAM, FC, superfície corporal (DC opcional);
-  PAS e PAD calibram a complacência arterial C (paciente virtual).
+Uso no modelo:
+- PK (Schnider/Marsh/Eleveld): idade, peso, altura, sexo.
+- BIS (Eleveld): idade, peso, altura, sexo.
+- Hemodinâmica basal (Windkessel): PAM e FC do monitor, superfície corporal (DC
+  opcional); PAS e PAD calibram a complacência arterial C (paciente virtual).
+  A PAM é obrigatória: os monitores oscilométricos a medem diretamente, como na
+  entrada do PropofolPBL do grupo.
 - Sensibilidade hemodinâmica ao propofol: idade, ASA, PVI, IVCI.
-- SpO₂ e glicemia são registrados, mas ainda não entram em nenhuma equação.
+- `spo2` e `glicemia` não entram no modelo; existem só para manter a mesma
+  estrutura do PropofolPBL do grupo.
 """
 Base.@kwdef struct Paciente
     nome::String = "Paciente"
@@ -28,7 +30,7 @@ Base.@kwdef struct Paciente
     pas::Float64
     pad::Float64
     fc::Float64
-    pam::Union{Nothing,Float64} = nothing
+    pam::Float64
     dc::Union{Nothing,Float64} = nothing
     spo2::Float64 = 98.0
     glicemia::Float64 = 95.0
@@ -37,6 +39,7 @@ Base.@kwdef struct Paciente
     function Paciente(nome, idade, peso, altura, sexo, asa, pas, pad, fc, pam, dc, spo2, glicemia, pvi, ivci)
         sexo in (:M, :F) || throw(ArgumentError("sexo deve ser :M ou :F"))
         pas > pad || throw(ArgumentError("PAS deve ser maior que PAD"))
+        pad < pam < pas || throw(ArgumentError("a PAM deve ficar entre PAD e PAS"))
         1 <= asa <= 5 || throw(ArgumentError("ASA deve estar entre 1 e 5"))
         new(nome, idade, peso, altura, sexo, asa, pas, pad, fc, pam, dc, spo2, glicemia, pvi, ivci)
     end
@@ -53,10 +56,14 @@ end
 "Superfície corporal [m²] (Mosteller)."
 superficie_corporal(p::Paciente) = sqrt(p.altura * p.peso / 3600)
 
-"PAM basal [mmHg]: a medida, ou PAD + (PAS − PAD)/3."
-pam_basal(p::Paciente) = something(p.pam, p.pad + (p.pas - p.pad) / 3)
+"PAM basal [mmHg], medida no monitor."
+pam_basal(p::Paciente) = p.pam
 
-"Débito cardíaco basal [L/min]: o medido, ou 3,0 L/min/m² × superfície corporal (como no grupo)."
+"""
+Débito cardíaco basal [L/min]: o medido, ou 3,0 L/min/m² × superfície corporal
+(como no grupo; índice cardíaco normal 2,5–4,0 L/min/m²). A queda prevista da PAM
+não depende desse valor, porque o modelo multiplica Rp, VS e FC por fatores relativos.
+"""
 debito_basal(p::Paciente) = something(p.dc, 3.0 * superficie_corporal(p))
 
 function Base.show(io::IO, p::Paciente)
@@ -78,7 +85,7 @@ function ler_paciente(arquivo::AbstractString)
                  idade = pd["idade"], peso = pd["peso"], altura = pd["altura"],
                  sexo = Symbol(uppercase(pd["sexo"])), asa = get(pd, "asa", 1),
                  pas = pd["pas"], pad = pd["pad"], fc = pd["fc"],
-                 pam = get(pd, "pam", nothing), dc = get(pd, "dc", nothing),
+                 pam = pd["pam"], dc = get(pd, "dc", nothing),
                  spo2 = get(pd, "spo2", 98.0), glicemia = get(pd, "glicemia", 95.0),
                  pvi = get(pd, "pvi", 10.0), ivci = get(pd, "ivci", 20.0))
     return p, get(d, "protocolo", Dict{String,Any}())

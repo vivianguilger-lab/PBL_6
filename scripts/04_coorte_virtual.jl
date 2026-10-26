@@ -8,8 +8,9 @@
 #   2. dose ajustada por idade (2,0 / 1,5 / 1,2 mg/kg);
 #   3. dose ajustada por idade, só bolus (sem manutenção).
 #
-# Verificação de plausibilidade populacional: a literatura do problema relata
-# PAM < 55 mmHg em 17–24% dos adultos nos 20 min após a indução.
+# EXPERIMENTAL — NÃO VALIDADO: as distribuições da coorte e as variabilidades
+# são suposições (docs/validacao.md, pendências). Fica fora de rodar_tudo.jl e
+# os resultados não são usados no README nem na plataforma.
 #
 # Uso: julia --project=. -t auto scripts/04_coorte_virtual.jl 500
 # =============================================================================

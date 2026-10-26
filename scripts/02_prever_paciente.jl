@@ -4,7 +4,7 @@
 #   1. lê os biomarcadores pré-indução (arquivo TOML)
 #   2. calibra o paciente virtual (Windkessel de 4 elementos: Rp e C)
 #   3. prevê a curva de PAM para a dose escolhida, ANTES da injeção
-#   4. relatório, faixa de incerteza, figuras e série batimento a batimento (CSV)
+#   4. relatório, figuras e série batimento a batimento (CSV)
 #
 # Uso: julia --project=. -t auto scripts/02_prever_paciente.jl dados/paciente_exemplo.toml
 # =============================================================================
@@ -30,19 +30,10 @@ r = simular_inducao(pv; dose_mgkg = dose, duracao_bolus, manutencao_ugkgmin = ma
 mt = metricas(r)
 relatorio(mt; titulo = "Previsão hemodinâmica — $(pac.nome)")
 
-inc = previsao_com_incerteza(pv; n = 200, dose_mgkg = dose, duracao_bolus, manutencao_ugkgmin = manut)
-@printf("\nIncerteza (%d sorteios de PK e de resposta hemodinâmica, hemodinâmica basal fixa):\n", inc.n)
-@printf("   PAM mínima: mediana %.0f mmHg (faixa 90%%: %.0f–%.0f)\n", inc.nadir_mediano, inc.nadir_p05, inc.nadir_p95)
-@printf("   P(PAM < 65) = %.0f%%   P(PAM < 55) = %.0f%%   P(BIS < 60) = %.0f%%\n",
-        100 * inc.prob_pam65, 100 * inc.prob_pam55, 100 * inc.prob_hipnose)
-
 titulo = @sprintf("%s | %.1f mg/kg em %.0f s | PAM %.0f → %.0f mmHg (risco %s)",
                   pac.nome, dose, duracao_bolus, mt.pam_basal, mt.pam_nadir, mt.risco)
 savefig(fig_inducao(r; titulo), saida("$(nome)_inducao.png"))
 savefig(fig_onda(r, mt), saida("$(nome)_onda.png"))
-savefig(fig_incerteza(inc, r; titulo = @sprintf("%s — %.1f mg/kg: P(PAM<65) = %.0f%%, P(PAM<55) = %.0f%%",
-                                                 pac.nome, dose, 100 * inc.prob_pam65, 100 * inc.prob_pam55)),
-        saida("$(nome)_incerteza.png"))
 
 b = r.bat
 open(saida("$(nome)_batimentos.csv"), "w") do io

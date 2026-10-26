@@ -44,7 +44,8 @@ export IdConditions, identify, identifyglobal, deal, cost, params_stergiopulos19
 export WINDKESSEL_ID_DIR, importPQ, dados_stergiopulos1999, mLs2Lmin
 # Paciente e propofol (NeoPKPD)
 export Paciente, ler_paciente, imc, massa_magra, superficie_corporal, debito_basal, pam_basal
-export parametros_pk, bolus, infusao, esquema_inducao, bis_eleveld, simular_propofol, matriz_pk
+export parametros_pk, parametros_eleveld, atraso_bis, bolus, infusao, esquema_inducao, bis_eleveld,
+       simular_propofol, matriz_pk
 # Acoplamento
 export EfeitoHemodinamico, fator_efeito, sensibilidade_hemodinamica, theta_basal, forma_fluxo,
        fluxo_batimento, batimento_basal, simular_hemodinamica, simular_paciente

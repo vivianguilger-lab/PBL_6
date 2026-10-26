@@ -5,7 +5,7 @@
 # do windkessel-id: estima θ do Windkessel de 2, 3 e 4 elementos a partir de
 # pressão e fluxo aórticos medidos (Newton com diferenciação automática).
 #   A. dados humanos de Stergiopulos et al. (1999)
-#   B. dados in vivo (porco, 70 kg)
+#   B. dados in vivo (porcos de 65 kg; windkessel-id v2.0, README)
 # É o caminho para individualizar o Windkessel com a linha arterial do paciente.
 #
 # Uso: julia --project=. scripts/06_identificacao_windkessel.jl

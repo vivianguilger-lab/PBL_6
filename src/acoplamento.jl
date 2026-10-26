@@ -38,12 +38,14 @@ fator_efeito(ef::EfeitoHemodinamico, Imax, s, Ce) =
     sensibilidade_hemodinamica(pac; k_idade=0.01, k_asa=0.15, k_pvi=0.03, k_ivci=0.01)
 
 Fator de sensibilidade hemodinâmica (1 = paciente de referência). Aumenta com
-idade > 50 anos, ASA ≥ 3, PVI > 13% e IVCI > 40% (sinais de hipovolemia),
-fatores associados à hipotensão pós-indução. Coeficientes: hipóteses a calibrar.
+idade > 50 anos, ASA ≥ 3, PVI > 15% e IVCI > 43%, fatores associados à hipotensão
+pós-indução. Limiares: PVI de Tsuchiya et al. 2010 (PVI > 15 prevê queda da PAM após
+propofol); IVCI de Zhang & Critchley 2016 (corte ótimo de 43%). Os coeficientes `k_*`
+são do grupo, ilustrativos, ainda sem calibração (docs/validacao.md).
 """
 function sensibilidade_hemodinamica(pac::Paciente; k_idade = 0.01, k_asa = 0.15, k_pvi = 0.03, k_ivci = 0.01)
     return 1.0 + k_idade * max(pac.idade - 50, 0) + k_asa * max(pac.asa - 2, 0) +
-           k_pvi * max(pac.pvi - 13, 0) + k_ivci * max(pac.ivci - 40, 0)
+           k_pvi * max(pac.pvi - 15, 0) + k_ivci * max(pac.ivci - 43, 0)
 end
 
 """

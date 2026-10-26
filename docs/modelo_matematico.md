@@ -11,16 +11,19 @@ que junta dois repositórios:
 | [shramish2057/NeoPKPD](https://github.com/shramish2057/NeoPKPD) (pacote Julia registrado) | motor PK/PD: modelo tricompartimental com bolus e infusões, compartimento de efeito (`ke0`) |
 | [hpigot/windkessel-id](https://github.com/hpigot/windkessel-id) (MIT) | Windkessel de 2/3/4 elementos, identificação a partir de pressão/fluxo e dados aórticos |
 
-Equações, valores padrão e testes do grupo foram mantidos. Sobre essa base, este pacote
-acrescenta: o paciente virtual calibrado também com PAS/PAD, as métricas de hipotensão, a
-janela de dose, a faixa de incerteza, a coorte virtual e a plataforma web.
+Equações, valores padrão e testes do grupo foram mantidos, com as correções da validação
+([validacao.md](validacao.md), seção 3). Sobre essa base, este pacote acrescenta: o BIS pelo
+modelo de Eleveld completo, o paciente virtual calibrado também com PAS/PAD, as métricas de
+hipotensão, a janela de dose e a plataforma web. Cada valor citado aqui tem arquivo, linha e
+fonte em [validacao.md](validacao.md).
 
 ## 1. Fluxo
 
 ```
-Paciente ──► PK (Schnider/Marsh, NeoPKPD) ──► Cp(t) ──► ke0 ──► Ce(t) ──► BIS (Eleveld)
-                                                                  │
-  PAM, FC, DC basais ──► θ = [Rp, C, Rc, L] ◄─────────────────────┘ (Emax sigmoide × sensibilidade)
+Paciente ──► PK de Eleveld ──► Cp ──► ke0 de Eleveld ──► Ce ──► atraso ──► BIS (Eleveld 2018)
+        └──► PK escolhido (Schnider/Marsh/Eleveld, NeoPKPD) ──► Cp(t) ──► ke0 ──► Ce(t)
+                                                                               │
+  PAM, FC, DC basais ──► θ = [Rp, C, Rc, L] ◄──────────────────────────────────┘ (Emax sigmoide × sensibilidade)
   PAS − PAD ──► C (paciente virtual)  │
                                        ▼
           fluxo aórtico (Stergiopulos) ─► Windkessel de 4 elementos ─► pressão arterial batimento a batimento
@@ -30,11 +33,13 @@ Paciente ──► PK (Schnider/Marsh, NeoPKPD) ──► Cp(t) ──► ke0 �
 
 | biomarcador | uso no modelo |
 |---|---|
-| idade, peso, altura, sexo | PK de Schnider (massa magra de James); idade também no Ce50 do BIS |
-| PAM, FC (e DC, se medido) | Windkessel basal: Rp = PAM/DC |
+| idade, peso, altura, sexo | PK (Schnider: massa magra de James; Eleveld: massa livre de gordura de Al-Sallami); BIS de Eleveld |
+| PAM (do monitor), FC (e DC, se medido) | Windkessel basal: Rp = PAM/DC |
 | PAS, PAD | complacência arterial C do paciente virtual (extensão deste pacote) |
 | ASA, PVI, IVCI, idade | fator de sensibilidade hemodinâmica ao propofol |
-| SpO₂, glicemia | registrados; ainda **não** entram em nenhuma equação |
+
+SpO₂ e glicemia existem na estrutura `Paciente` (como no grupo), mas não entram no modelo e
+saíram da plataforma.
 
 DC basal, quando não medido: 3,0 L/min/m² × superfície corporal (Mosteller).
 
@@ -50,12 +55,26 @@ Modelo tricompartimental (`ThreeCompIVBolus`) com bolus (padrão: 30 s) e infus�
 | CL | 1,89 + 0,0456·(peso − 77) − 0,0681·(LBM − 59) + 0,0264·(altura − 177) L/min | 0,119·V1 |
 | Q2 | 1,29 − 0,024·(idade − 53) L/min | 0,112·V1 |
 | Q3 | 0,836 L/min | 0,0419·V1 |
-| ke0 | 0,456 /min | 0,26 /min |
+| ke0 | 0,456 /min (Schnider 1999) | 0,26 /min (Diprifusor; não é de Marsh 1991) |
+
+Se as equações lineares de Schnider derem V2, CL ou Q2 ≤ 0 (fora da faixa de adultos), o
+programa para com erro; não há pisos.
+
+**Eleveld (2018):** modelo alométrico com idade, peso, altura, sexo e massa livre de gordura
+de Al-Sallami (parâmetros e equações em `parametros_eleveld`, iguais aos do Python Anesthesia
+Simulator), amostras arteriais, sem opioide; ke0 = 0,146·(peso/70)^−0,25 /min.
 
 Sítio efetor (`simulate_biophase` do NeoPKPD): dCe/dt = ke0·(Cp − Ce).
 
-**BIS (Eleveld 2018):** BIS = 93 − 93·Ceᵞ/(Ce50ᵞ + Ceᵞ), Ce50 = 3,08·e^{−0,00635(idade−35)} µg/ml,
-γ = 1,47 abaixo de Ce50 e 1,89 acima.
+**BIS (Eleveld 2018, modelo completo):** calculado sempre com o PK e o ke0 de Eleveld, qualquer
+que seja o PK escolhido para a hemodinâmica, porque o Ce50 foi estimado com eles:
+
+```
+BIS(t) = 93 − 93·Ce(t − d)ᵞ / (Ce50ᵞ + Ce(t − d)ᵞ)
+Ce50 = 3,08·e^(−0,00635·(idade − 35)) µg/ml
+γ = 1,89 se Ce ≤ Ce50;  1,47 se Ce > Ce50
+d = 15 + e^(0,0517·idade) s   (atraso do BIS)
+```
 
 ## 4. Windkessel de 4 elementos (windkessel-id)
 
@@ -95,11 +114,14 @@ X = X₀ · max(1 − Imax_X · s · Ceᵞ/(Ce50ᵞ + Ceᵞ), 0,05)      X ∈ {
 Sensibilidade do paciente:
 
 ```
-s = 1 + 0,01·max(idade − 50, 0) + 0,15·max(ASA − 2, 0) + 0,03·max(PVI − 13, 0) + 0,01·max(IVCI − 40, 0)
+s = 1 + 0,01·max(idade − 50, 0) + 0,15·max(ASA − 2, 0) + 0,03·max(PVI − 15, 0) + 0,01·max(IVCI − 43, 0)
 ```
 
-> Como diz o README do grupo: esses valores são **ilustrativos** (ordem de grandeza da queda
-> de PAM na indução), não ajustados a dados, e precisam ser calibrados.
+Limiares de PVI (Tsuchiya 2010) e IVCI (Zhang & Critchley 2016) da literatura; o grupo usava
+13% e 40%.
+
+> Como diz o README do grupo: Ce50, γ, Imax e os coeficientes de s são **ilustrativos** (ordem
+> de grandeza da queda de PAM na indução), não ajustados a dados, e precisam ser calibrados.
 
 ## 6. Paciente virtual (extensão)
 
@@ -111,20 +133,19 @@ s = 1 + 0,01·max(idade − 50, 0) + 0,15·max(ASA − 2, 0) + 0,03·max(PVI −
    + estimativa de fluxo), θ inteiro pode ser identificado com `identify`
    (`scripts/06_identificacao_windkessel.jl`).
 
-## 7. Incerteza e coorte virtual (extensão)
+## 7. Incerteza e coorte virtual (experimental, desativadas)
 
-Variabilidade interindividual log-normal: PK com as variâncias de Schnider (V1 0,0404; V2 0,01;
-V3 0,1435; CL 0,1005; Q2 0,01; Q3 0,1179) e ω = 0,3 para ke0; resposta hemodinâmica com
-ω = 0,3 em Ce50 e nos três Imax (assumidos). A previsão individual mantém a hemodinâmica
-basal calibrada e sorteia a farmacologia (200 sorteios) → mediana, faixa de 90% e
-P(PAM < 65), P(PAM < 55).
+O código (`incerteza.jl`, `populacao.jl`) sorteia a farmacologia com variabilidade log-normal,
+mas as variabilidades não estão validadas (a leitura da tabela de Schnider é incerta e as da
+resposta hemodinâmica foram assumidas). Por isso não entram na plataforma nem nos resultados
+até a validação ([validacao.md](validacao.md), seção 6).
 
 ## 8. Métricas
 
 PAM basal (1 min antes do bolus), PAM mínima e instante, queda (%), tempo com PAM < 65 e
 < 55 mmHg e área abaixo do limiar nos 20 min após o bolus, BIS mínimo e tempo até BIS < 60.
-Risco: **ALTO** (qualquer PAM < 55), **MODERADO** (PAM < 65 por ≥ 1 min ou queda > 30%),
-**BAIXO** (demais).
+Risco pela PAM mínima prevista: **ALTO** (< 55 mmHg), **MODERADO** (55–65 mmHg), **BAIXO**
+(≥ 65 mmHg). Os dois limiares vêm da literatura (Walsh 2013; Salmasi 2017).
 
 ## 9. Classificação (Resumo, Seções 2, 3 e 7)
 
@@ -132,7 +153,7 @@ Risco: **ALTO** (qualquer PAM < 55), **MODERADO** (PAM < 65 por ≥ 1 min ou que
 |---|---|
 | tempo contínuo × discreto | PK contínua (EDOs no NeoPKPD); Windkessel discretizado (ZOH) batimento a batimento |
 | linear × não linear | Windkessel linear; acoplamento não linear (Hill) |
-| determinístico × estocástico | determinístico por paciente; estocástico na faixa de incerteza e na coorte |
+| determinístico × estocástico | determinístico (as análises estocásticas estão desativadas até a validação) |
 | tempo-invariante × tempo-variante | tempo-variante (Rp, VS e FC mudam com Ce) |
 | concentrado × distribuído | concentrado (0-D) |
 | black box × grey box | grey box: estrutura física, parâmetros do paciente e da literatura |
@@ -145,4 +166,5 @@ fechada com barorreflexo e dois compartimentos de efeito. Ele foi substituído p
 grupo, que é aberto: o fluxo aórtico é imposto (Stergiopulos) e o propofol age diretamente
 sobre Rp, VS e FC. Consequências: não há barorreflexo nem retorno venoso explícitos (a queda
 de VS representa tanto depressão miocárdica quanto redução de pré-carga), e o efeito
-hemodinâmico usa o mesmo Ce do BIS (ke0 único).
+hemodinâmico usa o Ce do PK escolhido, cujo ke0 é mais rápido que o observado para a pressão
+(Kazama 1999).

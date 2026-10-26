@@ -1,23 +1,23 @@
 Paciente A - 62 anos, hipertensa controlada: 62 anos, fem., 72 kg, 160 cm, ASA 2 | PA 148/82 (PAM 104) mmHg | FC 78 bpm | DC 5.37 L/min (estimado) | PVI 12%, IVCI 25%
 
  dose    mg    PAM mín.  queda   t mín.   PAM<65  PAM<55  BIS mín  risco
- 0.50     36     84.7      19%    2.8 min   0.0     0.0       49    BAIXO
- 0.75     54     76.8      26%    2.3 min   0.0     0.0       35    BAIXO
- 1.00     72     71.5      31%    2.1 min   0.0     0.0       25    MODERADO
- 1.25     90     67.9      35%    2.0 min   0.0     0.0       18    MODERADO
- 1.50    108     65.8      37%    2.0 min   0.0     0.0       14    MODERADO
- 1.75    126     64.0      38%    2.0 min   1.4     0.0       11    MODERADO
- 2.00    144     63.0      39%    1.9 min   2.4     0.0        9    MODERADO
- 2.25    162     62.3      40%    1.9 min   3.1     0.0        7    MODERADO
- 2.50    180     61.7      41%    1.9 min   3.6     0.0        6    MODERADO
- 2.75    198     61.3      41%    1.9 min   4.0     0.0        5    MODERADO
- 3.00    216     61.0      41%    1.9 min   4.3     0.0        4    MODERADO
+ 0.50     36     84.7      19%    2.8 min   0.0     0.0       59    BAIXO
+ 0.75     54     76.8      26%    2.3 min   0.0     0.0       57    BAIXO
+ 1.00     72     71.5      31%    2.1 min   0.0     0.0       55    BAIXO
+ 1.25     90     67.9      35%    2.0 min   0.0     0.0       51    BAIXO
+ 1.50    108     65.8      37%    2.0 min   0.0     0.0       45    BAIXO
+ 1.75    126     64.0      38%    2.0 min   1.4     0.0       40    MODERADO
+ 2.00    144     63.0      39%    1.9 min   2.4     0.0       36    MODERADO
+ 2.25    162     62.3      40%    1.9 min   3.1     0.0       33    MODERADO
+ 2.50    180     61.7      41%    1.9 min   3.6     0.0       30    MODERADO
+ 2.75    198     61.3      41%    1.9 min   4.0     0.0       28    MODERADO
+ 3.00    216     61.0      41%    1.9 min   4.3     0.0       25    MODERADO
 
 Janela individual (bolus em 30 s): 0.50 a 1.63 mg/kg  (36 a 117 mg)
 
 Velocidade de injeção (1.5 mg/kg):
-  bolus em  10 s: PAM mínima 65.9 mmHg (1.8 min), BIS mín 14
-  bolus em  60 s: PAM mínima 65.8 mmHg (2.3 min), BIS mín 14
-  bolus em 120 s: PAM mínima 65.8 mmHg (3.0 min), BIS mín 14
+  bolus em  10 s: PAM mínima 65.9 mmHg (1.8 min), BIS mín 45
+  bolus em  60 s: PAM mínima 65.8 mmHg (2.3 min), BIS mín 44
+  bolus em 120 s: PAM mínima 65.8 mmHg (3.0 min), BIS mín 43
 
 Figuras em: /home/user/PBL_6/resultados

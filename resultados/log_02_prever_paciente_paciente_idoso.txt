@@ -4,27 +4,23 @@
 
 2) Paciente virtual
 Paciente virtual — Paciente C - 81 anos, hipertensão sistólica isolada: 81 anos, masc., 64 kg, 168 cm, ASA 3 | PA 168/76 (PAM 107) mmHg | FC 64 bpm | DC 5.18 L/min (estimado) | PVI 18%, IVCI 45%
-  PA do modelo 154/62 (PAM 106.4) mmHg | medida 168/76 (PAM 106.7)
-  Windkessel 4 elementos: Rp = 1.234 mmHg·s/ml, C = 0.52 ml/mmHg, Rc = 0.056, L = 0.0051 | τ = Rp·C = 0.64 s
-  DC 5.18 L/min, VS 81 ml | sensibilidade hemodinâmica s = 1.66
+  PA do modelo 154/62 (PAM 106.7) mmHg | medida 168/76 (PAM 107.0)
+  Windkessel 4 elementos: Rp = 1.238 mmHg·s/ml, C = 0.52 ml/mmHg, Rc = 0.056, L = 0.0051 | τ = Rp·C = 0.64 s
+  DC 5.18 L/min, VS 81 ml | sensibilidade hemodinâmica s = 1.57
   PK (schnider): CL 1.55 L/min, V1 4.27 L, V2 8.0 L, V3 238 L, ke0 0.456 /min
 
 3) Previsão para 1.5 mg/kg (96.0 mg) em 30.0 s + manutenção 100.0 µg/kg/min
 ────────────────────────────────────────────────────────────────────────
 Previsão hemodinâmica — Paciente C - 81 anos, hipertensão sistólica isolada
 ────────────────────────────────────────────────────────────────────────
-PAM basal            :  106.4 mmHg   (FC 64 bpm, DC 5.18 L/min)
-PAM mínima           :   51.0 mmHg   em 2.3 min (queda de 52%)
-  nesse momento      : PA 89/20, FC 60 bpm, DC 3.81 L/min
-Tempo com PAM < 65   :    6.5 min    AUT = 58 mmHg·min
-Tempo com PAM < 55   :    3.2 min    AUT = 8 mmHg·min
-BIS mínimo           :     10        (BIS < 60 em 0.4 min; por 19.6 min)
+PAM basal            :  106.7 mmHg   (FC 64 bpm, DC 5.18 L/min)
+PAM mínima           :   53.7 mmHg   em 2.3 min (queda de 50%)
+  nesse momento      : PA 92/22, FC 60 bpm, DC 3.88 L/min
+Tempo com PAM < 65   :    5.8 min    AUT = 43 mmHg·min
+Tempo com PAM < 55   :    1.8 min    AUT = 2 mmHg·min
+BIS mínimo           :     39        (BIS < 60 em 2.7 min; por 17.4 min)
 Ce máxima            : 6.88 µg/ml
 Risco previsto       : ALTO
 ────────────────────────────────────────────────────────────────────────
-
-Incerteza (200 sorteios de PK e de resposta hemodinâmica, hemodinâmica basal fixa):
-   PAM mínima: mediana 52 mmHg (faixa 90%: 34–67)
-   P(PAM < 65) = 92%   P(PAM < 55) = 64%   P(BIS < 60) = 100%
 
 Figuras e CSV em: /home/user/PBL_6/resultados

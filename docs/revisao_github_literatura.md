@@ -45,7 +45,7 @@ versão anterior do software (até o commit `d3dd331`).
 
 | repositório | linguagem | o que oferece | como usamos |
 |---|---|---|---|
-| ★ [AnesthesiaSimulation/Python_Anesthesia_Simulator](https://github.com/AnesthesiaSimulation/Python_Anesthesia_Simulator) (PAS) | Python | Simulador de anestesia venosa total: PK de Schnider, Marsh, Schüttler e Eleveld; BIS (Bouillon, Vanluchene, Eleveld); modelo hemodinâmico mecanístico de **Su et al. 2023** (TPR, VS, FC com retroalimentação); variabilidade interindividual; distúrbios (intubação, cirurgia). | Conferimos as equações de **Schnider**, os parâmetros de **Bouillon** para o BIS, os parâmetros de **Su 2023** para TPR e volume sistólico (C50, Emax, γ, efeito da idade) e as variâncias interindividuais. |
+| ★ [AnesthesiaSimulation/Python_Anesthesia_Simulator](https://github.com/AnesthesiaSimulation/Python_Anesthesia_Simulator) (PAS) | Python | Simulador de anestesia venosa total: PK de Schnider, Marsh, Schüttler e Eleveld; BIS (Bouillon, Vanluchene, Eleveld); modelo hemodinâmico mecanístico de Su et al. (TPR, VS, FC com retroalimentação; o PAS cita o artigo de 2023, de interação com remifentanil; os EC50 só do propofol são do Su 2022); variabilidade interindividual. | Conferência independente das equações de **Schnider**, **Marsh** e **Eleveld** (o nosso Eleveld é testado contra o código do PAS); ordem de grandeza do efeito hemodinâmico. A leitura das variâncias de Schnider no PAS difere da nossa (ver [validacao.md](validacao.md)). |
 | [victorbezerra-dev/simethesia-simulator](https://github.com/victorbezerra-dev/simethesia-simulator) | C++/Arduino | Simulador PK/PD do BIS em tempo real. | — |
 | [danieltorres-sci/propofol-simulator](https://github.com/danieltorres-sci/propofol-simulator) | Python | Modelo de Schnider com concentração no local de efeito. | Conferência dos valores de Schnider. |
 | [shashankag14/Propofol-Predictor](https://github.com/shashankag14/Propofol-Predictor) | Python | Predição de concentração (PK + aprendizado de máquina). | — |
@@ -68,12 +68,18 @@ propofol a um Windkessel calibrado por paciente para prever a curva de PAM antes
 
 ## 4. Literatura
 
+A bibliografia conferida, com origem de cada citação e o que ela sustenta no modelo, está em
+[validacao.md](validacao.md#8-bibliografia). A lista abaixo é a da pesquisa inicial.
+
 **Farmacocinética e farmacodinâmica**
 - Schnider TW et al. The influence of method of administration and covariates on the pharmacokinetics of propofol in adult volunteers. *Anesthesiology* 1998;88:1170–82.
 - Schnider TW et al. The influence of age on propofol pharmacodynamics. *Anesthesiology* 1999;90:1502–16.
 - Kazama T et al. Comparison of the effect-site k(eO)s of propofol for blood pressure and EEG bispectral index in elderly and younger patients. *Anesthesiology* 1999;90:1517–27.
 - Bouillon TW et al. Pharmacodynamic interaction between propofol and remifentanil regarding hypnosis, tolerance of laryngoscopy, bispectral index, and electroencephalographic approximate entropy. *Anesthesiology* 2004;100:1353–72.
-- Su H, Koomen JV, Eleveld DJ, Struys MMRF, Colin PJ. Pharmacodynamic mechanism-based interaction model for the haemodynamic effects of remifentanil and propofol in healthy volunteers. *Br J Anaesth* 2023;131(2):222–233.
+- Su H, Koomen JV, Eleveld DJ, Struys MMRF, Colin PJ. Pharmacodynamic mechanism-based interaction model for the haemodynamic effects of remifentanil and propofol in healthy volunteers. *Br J Anaesth* 2023;131(2):222–233 (interação com remifentanil).
+- Su H, Eleveld DJ, Struys MMRF, Colin PJ. *Br J Anaesth* 2022 (efeitos hemodinâmicos só do propofol; PMID 35249706).
+- Eleveld DJ et al. Pharmacokinetic–pharmacodynamic model for propofol for broad application in anaesthesia and sedation. *Br J Anaesth* 2018;120:942–59.
+- Marsh B et al. Pharmacokinetic model driven infusion of propofol in children. *Br J Anaesth* 1991;67:41–8.
 
 **Mecanismos hemodinâmicos do propofol**
 - de Wit F et al. The effect of propofol on haemodynamics: cardiac output, venous return, mean systemic filling pressure, and vascular resistances. *Br J Anaesth* 2016;116(6):784–789.
@@ -82,6 +88,7 @@ propofol a um Windkessel calibrado por paciente para prever a curva de PAM antes
 - Claeys MA, Gepts E, Camu F. Haemodynamic changes during anaesthesia induced and maintained with propofol. *Br J Anaesth* 1988;60:3–9.
 
 **Circulação e controle**
+- Stergiopulos N, Westerhof BE, Westerhof N. Total arterial inertance as the fourth element of the windkessel model. *Am J Physiol* 1999;276:H81–8.
 - Bjørdalsbakke NL et al. Parameter estimation for closed-loop lumped parameter models of the systemic circulation using synthetic data. *Math Biosci* 2022;343:108731.
 - Shi Y, Lawford P, Hose R. Review of zero-D and 1-D models of blood flow in the cardiovascular system. *Biomed Eng Online* 2011;10:33.
 - Ursino M. Interaction between carotid baroregulation and the pulsating heart: a mathematical model. *Am J Physiol* 1998;275:H1733–47.

@@ -18,6 +18,6 @@ end
 for p in ("paciente_exemplo", "paciente_idoso")
     roda("03_janela_de_dose.jl", joinpath(RAIZ, "dados", "$p.toml"))
 end
-roda("04_coorte_virtual.jl", "500"; threads = "auto")
+# 04_coorte_virtual.jl é experimental (não validado) e não entra aqui
 roda("05_sensibilidade.jl", joinpath(RAIZ, "dados", "paciente_exemplo.toml"); threads = "auto")
 roda("06_identificacao_windkessel.jl")

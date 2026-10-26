@@ -261,7 +261,7 @@ dl.params dt { color: var(--ink-2); } dl.params dd { margin: 0; font-weight: 600
       <div class="sub">Previsão hemodinâmica da indução anestésica com propofol</div>
     </div>
     <div class="tags">
-      <span class="tag">PK/PD · NeoPKPD</span>
+      <span class="tag">PK/PD · NeoPKPD · BIS de Eleveld</span>
       <span class="tag">Windkessel de 4 elementos</span>
       <span class="tag">Uso educacional e de pesquisa</span>
       <button class="icon-btn" id="tema" title="Alternar tema claro/escuro" aria-label="Alternar tema claro/escuro">
@@ -296,7 +296,7 @@ dl.params dt { color: var(--ink-2); } dl.params dd { margin: 0; font-weight: 600
           <label class="f">PAS<div class="inp"><input id="pas" type="number" inputmode="decimal" min="60" max="250" value="148"><span class="u">mmHg</span></div></label>
           <label class="f">PAD<div class="inp"><input id="pad" type="number" inputmode="decimal" min="30" max="150" value="82"><span class="u">mmHg</span></div></label>
           <label class="f">FC<div class="inp"><input id="fc" type="number" inputmode="decimal" min="35" max="160" value="78"><span class="u">bpm</span></div></label>
-          <label class="f">PAM (opcional)<div class="inp"><input id="pam" type="number" inputmode="decimal" placeholder="calculada"><span class="u">mmHg</span></div></label>
+          <label class="f">PAM<div class="inp"><input id="pam" type="number" inputmode="decimal" min="40" max="200" value="104"><span class="u">mmHg</span></div></label>
         </div>
         <details class="opt"><summary>Débito cardíaco medido (opcional)</summary>
           <label class="f">DC<div class="inp"><input id="dc" type="number" inputmode="decimal" step="0.1" placeholder="estimado: 3,0 L/min/m² × sup. corporal"><span class="u">L/min</span></div></label>
@@ -310,10 +310,8 @@ dl.params dt { color: var(--ink-2); } dl.params dd { margin: 0; font-weight: 600
             <option value="4">ASA IV</option><option value="5">ASA V</option></select></div></label>
           <label class="f">PVI<div class="inp"><input id="pvi" type="number" inputmode="decimal" min="0" max="60" value="10"><span class="u">%</span></div></label>
           <label class="f">IVCI (veia cava)<div class="inp"><input id="ivci" type="number" inputmode="decimal" min="0" max="100" value="20"><span class="u">%</span></div></label>
-          <label class="f">SpO₂<div class="inp"><input id="spo2" type="number" inputmode="decimal" min="70" max="100" value="98"><span class="u">%</span></div></label>
-          <label class="f">Glicemia<div class="inp"><input id="glicemia" type="number" inputmode="decimal" min="40" max="500" value="95"><span class="u">mg/dL</span></div></label>
         </div>
-        <div class="dose-total">Idade &gt; 50, ASA ≥ III, PVI &gt; 13% e IVCI &gt; 40% aumentam a sensibilidade ao propofol. SpO₂ e glicemia são registradas, mas ainda não entram no modelo.</div>
+        <div class="dose-total">Idade &gt; 50, ASA ≥ III, PVI &gt; 15% e IVCI &gt; 43% aumentam a sensibilidade ao propofol.</div>
       </fieldset>
       <fieldset>
         <legend><span class="n">4</span>Protocolo de indução</legend>
@@ -330,7 +328,7 @@ dl.params dt { color: var(--ink-2); } dl.params dd { margin: 0; font-weight: 600
           <label class="f">Manutenção<div class="inp"><input id="manut" type="number" min="0" max="300" step="10" value="100"><span class="u">µg/kg/min</span></div></label>
         </div>
         <label class="f" style="margin-top:10px">Modelo farmacocinético<div class="inp"><select id="modelo">
-          <option value="schnider" selected>Schnider</option><option value="marsh">Marsh</option></select></div></label>
+          <option value="schnider" selected>Schnider</option><option value="marsh">Marsh</option><option value="eleveld">Eleveld</option></select></div></label>
       </fieldset>
       </div>
       <div class="form-ft">
@@ -375,8 +373,8 @@ dl.params dt { color: var(--ink-2); } dl.params dd { margin: 0; font-weight: 600
       <div class="tiles">
         <div class="tile"><div class="k">PAM basal → mínima</div><div class="v" id="tNadir"></div><div class="s" id="tNadirS"></div></div>
         <div class="tile"><div class="k">Tempo com PAM &lt; 65</div><div class="v" id="t65"></div><div class="s" id="t65S"></div></div>
-        <div class="tile"><div class="k">Chance de PAM &lt; 65</div><div class="v" id="p65"></div><div class="s">considerando a variabilidade entre pacientes</div></div>
-        <div class="tile"><div class="k">Chance de PAM &lt; 55</div><div class="v" id="p55"></div><div class="s">limiar associado a lesão de órgãos</div></div>
+        <div class="tile"><div class="k">Queda da PAM</div><div class="v" id="tQueda"></div><div class="s" id="tQuedaS"></div></div>
+        <div class="tile"><div class="k">Tempo com PAM &lt; 55</div><div class="v" id="t55"></div><div class="s">limiar associado a lesão renal e miocárdica</div></div>
         <div class="tile"><div class="k">Hipnose (BIS &lt; 60)</div><div class="v" id="tBis"></div><div class="s" id="tBisS"></div></div>
       </div>
 
@@ -391,8 +389,8 @@ dl.params dt { color: var(--ink-2); } dl.params dd { margin: 0; font-weight: 600
       <div class="grid2c">
         <section class="card"><div class="hd"><span class="idx">02</span><h2>Frequência cardíaca</h2><span class="hint">bpm</span></div><div class="bd"><div class="chart" id="chFC"></div></div></section>
         <section class="card"><div class="hd"><span class="idx">03</span><h2>Débito cardíaco</h2><span class="hint">L/min</span></div><div class="bd"><div class="chart" id="chDC"></div></div></section>
-        <section class="card"><div class="hd"><span class="idx">04</span><h2>Profundidade anestésica (BIS)</h2><span class="hint">faixa-alvo 40–60</span></div><div class="bd"><div class="chart" id="chBIS"></div></div></section>
-        <section class="card"><div class="hd"><span class="idx">05</span><h2>Concentração de propofol</h2><span class="hint">µg/ml · NeoPKPD</span></div><div class="bd"><div class="legend" id="legCE"></div><div class="chart" id="chCE"></div></div></section>
+        <section class="card"><div class="hd"><span class="idx">04</span><h2>Profundidade anestésica (BIS)</h2><span class="hint">Eleveld 2018 completo (PK, ke0 e atraso) · faixa-alvo 40–60</span></div><div class="bd"><div class="chart" id="chBIS"></div></div></section>
+        <section class="card"><div class="hd"><span class="idx">05</span><h2>Concentração de propofol</h2><span class="hint">µg/ml · modelo PK escolhido · move a hemodinâmica</span></div><div class="bd"><div class="legend" id="legCE"></div><div class="chart" id="chCE"></div></div></section>
       </div>
 
       <section class="card">
@@ -426,11 +424,12 @@ dl.params dt { color: var(--ink-2); } dl.params dd { margin: 0; font-weight: 600
 
       <section class="card">
         <div class="bd foot" style="padding-top:18px">
-          <p class="disclaimer"><b>Uso educacional e de pesquisa.</b> PK/PD do propofol pelo NeoPKPD (Schnider ou Marsh,
-            BIS de Eleveld) acoplada a um Windkessel de 4 elementos (windkessel-id, Stergiopulos 1999), seguindo o modelo
-            PropofolPBL do grupo. Os parâmetros do efeito hemodinâmico e da sensibilidade são ilustrativos e ainda não foram
-            ajustados nem validados com dados de pacientes; o modelo não considera opioides, laringoscopia, fluidos ou
-            vasopressores. A decisão clínica é sempre do anestesiologista.</p>
+          <p class="disclaimer"><b>Uso educacional e de pesquisa.</b> PK do propofol pelo NeoPKPD (Schnider, Marsh ou
+            Eleveld) acoplada a um Windkessel de 4 elementos (windkessel-id, Stergiopulos 1999), seguindo o modelo
+            PropofolPBL do grupo; BIS pelo modelo de Eleveld 2018 completo. Os parâmetros do efeito hemodinâmico e da
+            sensibilidade são ilustrativos e ainda não foram ajustados nem validados com dados de pacientes (ver
+            docs/validacao.md); o modelo não considera opioides, laringoscopia, fluidos ou vasopressores. A decisão clínica
+            é sempre do anestesiologista.</p>
           <div class="actions">
             <button class="icon-btn" id="print"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M6 9V3h12v6M6 18H4v-7h16v7h-2M7 14h10v7H7z"/></svg>Imprimir / salvar PDF</button>
             <button class="icon-btn" id="csv"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5M4 20h16"/></svg>Baixar curva (CSV)</button>
@@ -479,24 +478,23 @@ $("peso").oninput = atualizaDose;
 atualizaDose();
 
 const EXEMPLOS = [
-  { idade: 62, sexo: "F", peso: 72, altura: 160, pas: 148, pad: 82, fc: 78, asa: 2, pvi: 12, ivci: 25, dose: 1.5 },
-  { idade: 28, sexo: "M", peso: 80, altura: 180, pas: 124, pad: 72, fc: 74, asa: 1, pvi: 9, ivci: 15, dose: 2.0 },
-  { idade: 81, sexo: "M", peso: 64, altura: 168, pas: 168, pad: 76, fc: 64, asa: 3, pvi: 18, ivci: 45, dose: 1.5 },
+  { idade: 62, sexo: "F", peso: 72, altura: 160, pas: 148, pad: 82, pam: 104, fc: 78, asa: 2, pvi: 12, ivci: 25, dose: 1.5 },
+  { idade: 28, sexo: "M", peso: 80, altura: 180, pas: 124, pad: 72, pam: 89, fc: 74, asa: 1, pvi: 9, ivci: 15, dose: 2.0 },
+  { idade: 81, sexo: "M", peso: 64, altura: 168, pas: 168, pad: 76, pam: 107, fc: 64, asa: 3, pvi: 18, ivci: 45, dose: 1.5 },
 ];
 document.querySelectorAll("[data-ex]").forEach(b => b.onclick = () => {
   const e = EXEMPLOS[+b.dataset.ex];
-  for (const k of ["idade", "peso", "altura", "pas", "pad", "fc", "asa", "pvi", "ivci"]) $(k).value = e[k];
-  $("pam").value = ""; $("dc").value = ""; $("dose").value = $("doseR").value = e.dose;
+  for (const k of ["idade", "peso", "altura", "pas", "pad", "pam", "fc", "asa", "pvi", "ivci"]) $(k).value = e[k];
+  $("dc").value = ""; $("dose").value = $("doseR").value = e.dose;
   setSexo(e.sexo); atualizaDose(); simular();
 });
 
 function coletar() {
   const v = id => $(id).value.trim();
-  const p = { idade: v("idade"), sexo, peso: v("peso"), altura: v("altura"), pas: v("pas"), pad: v("pad"), fc: v("fc") };
-  for (const k in p) if (p[k] === "") throw new Error("Preencha todos os campos do paciente e do monitor.");
-  if (v("pam")) p.pam = v("pam");
+  const p = { idade: v("idade"), sexo, peso: v("peso"), altura: v("altura"), pas: v("pas"), pad: v("pad"), pam: v("pam"), fc: v("fc") };
+  for (const k in p) if (p[k] === "") throw new Error("Preencha todos os campos do paciente e do monitor (inclusive a PAM).");
   if (v("dc")) p.dc = v("dc");
-  for (const k of ["asa", "pvi", "ivci", "spo2", "glicemia"]) if (v(k)) p[k] = v(k);
+  for (const k of ["asa", "pvi", "ivci"]) if (v(k)) p[k] = v(k);
   return { paciente: p, protocolo: { dose_mgkg: v("dose"), duracao_bolus_s: v("dur"), manutencao_ugkgmin: v("manut") || 0,
                                      modelo_pk: v("modelo") } };
 }
@@ -509,7 +507,7 @@ async function post(url, corpo) {
 }
 
 // ---------------------------------------------------------------- simulação
-let ultimo = null, inc = null, doses = null, pedido = 0;
+let ultimo = null, doses = null, pedido = 0;
 $("form").onsubmit = e => { e.preventDefault(); simular(); };
 
 async function simular() {
@@ -522,7 +520,7 @@ async function simular() {
   try {
     const r = await post("/api/simular", corpo);
     if (meu !== pedido) return;
-    ultimo = r; inc = null; doses = null; ultimo.corpo = corpo;
+    ultimo = r; doses = null; ultimo.corpo = corpo;
     $("vazio").classList.add("hidden"); $("res").classList.remove("hidden");
     $("dosesLoad").classList.remove("hidden"); $("dosesOk").classList.add("hidden");
     renderTudo();
@@ -530,7 +528,6 @@ async function simular() {
   finally { if (meu === pedido) { $("btn").disabled = false; $("btnTxt").textContent = "Simular"; } }
   if (meu !== pedido || !ultimo) return;
   try { const d = await post("/api/doses", corpo); if (meu === pedido) { doses = d; renderDoses(); } } catch (e) {}
-  try { const i = await post("/api/incerteza", { ...corpo, n: 100 }); if (meu === pedido) { inc = i; renderTudo(); } } catch (e) {}
 }
 function mostraErro(m) { $("err").textContent = m; $("err").style.display = "block"; }
 
@@ -658,11 +655,11 @@ const ICONES = {
 };
 const minTip = x => `${fmt(x, 1)} min após o bolus`;
 
-// régua da PAM: faixas < 55, 55–65 e ≥ 65 mmHg com a PAM basal, a mínima prevista e a faixa de 90%
-function meter(box, mt, inc) {
+// régua da PAM: faixas < 55, 55–65 e ≥ 65 mmHg com a PAM basal e a mínima prevista
+function meter(box, mt) {
   box.innerHTML = "";
   const W = Math.max(box.clientWidth, 280), H = 74, m = { l: 8, r: 8 };
-  const lo = 40, hi = Math.max(100, Math.ceil((Math.max(mt.pam_basal, inc ? inc.nadir_p95 : 0) + 6) / 10) * 10);
+  const lo = 40, hi = Math.max(100, Math.ceil((mt.pam_basal + 6) / 10) * 10);
   const X = v => m.l + (Math.min(Math.max(v, lo), hi) - lo) / (hi - lo) * (W - m.l - m.r);
   const svg = el("svg", { viewBox: `0 0 ${W} ${H}`, height: H, role: "img",
     "aria-label": `PAM basal ${fmt(mt.pam_basal)} e mínima prevista ${fmt(mt.pam_nadir)} mmHg` }, box);
@@ -677,11 +674,6 @@ function meter(box, mt, inc) {
     el("text", { x: X(v), y: yb + hb + 16, "text-anchor": "middle", "font-size": 11, fill: css("--muted") }, svg).textContent = v;
   }
   el("text", { x: X(hi), y: yb + hb + 30, "text-anchor": "end", "font-size": 11, fill: css("--muted") }, svg).textContent = "PAM (mmHg)";
-  if (inc) {
-    const yw = yb - 6;
-    el("line", { x1: X(inc.nadir_p05), x2: X(inc.nadir_p95), y1: yw, y2: yw, stroke: css("--ink-2"), "stroke-width": 1.5 }, svg);
-    [inc.nadir_p05, inc.nadir_p95].forEach(v => el("line", { x1: X(v), x2: X(v), y1: yw - 4, y2: yw + 4, stroke: css("--ink-2"), "stroke-width": 1.5 }, svg));
-  }
   el("line", { x1: X(mt.pam_nadir), x2: X(mt.pam_basal), y1: yb + hb / 2, y2: yb + hb / 2, stroke: css("--ink"), "stroke-width": 2, opacity: .55 }, svg);
   el("circle", { cx: X(mt.pam_basal), cy: yb + hb / 2, r: 6, fill: css("--surface"), stroke: css("--ink"), "stroke-width": 2 }, svg);
   el("circle", { cx: X(mt.pam_nadir), cy: yb + hb / 2, r: 7, fill: css("--ink"), stroke: css("--surface"), "stroke-width": 2.5 }, svg);
@@ -692,8 +684,7 @@ function meter(box, mt, inc) {
     if (anchor === "end" && x - w < 0) { t.setAttribute("text-anchor", "start"); t.setAttribute("x", 0); }
     if (anchor === "start" && x + w > W) { t.setAttribute("text-anchor", "end"); t.setAttribute("x", W); }
   };
-  lab(X(mt.pam_nadir) + 6, `mínima <tspan font-weight="600" fill="${css("--ink")}">${fmt(mt.pam_nadir)}</tspan>` +
-    (inc ? ` · 90%: ${fmt(inc.nadir_p05)}–${fmt(inc.nadir_p95)}` : ""), "end");
+  lab(X(mt.pam_nadir) + 6, `mínima <tspan font-weight="600" fill="${css("--ink")}">${fmt(mt.pam_nadir)}</tspan>`, "end");
   lab(X(mt.pam_basal) - 6, `basal <tspan font-weight="600" fill="${css("--ink")}">${fmt(mt.pam_basal)}</tspan>`, "start");
 }
 
@@ -707,17 +698,17 @@ function renderTudo() {
   const dose = r.corpo.protocolo;
   $("riskTxt").innerHTML = `Com <b>${fmt(+dose.dose_mgkg, 2)} mg/kg (${fmt(r.dose_mg)} mg)</b>, a PAM prevista cai de
     <b>${fmt(mt.pam_basal)}</b> para <b>${fmt(mt.pam_nadir)} mmHg</b> em ${fmt(mt.t_nadir, 1)} min (−${fmt(mt.queda_pct)}%).
-    <small>${mt.risco === "ALTO" ? "A curva típica cruza 55 mmHg." : mt.risco === "MODERADO"
-      ? "Queda acima de 30% ou PAM abaixo de 65 mmHg por pelo menos 1 minuto." : "A curva típica fica acima de 65 mmHg, com queda menor que 30%."}
-      ${inc ? ` Considerando a variabilidade entre pacientes, a PAM mínima fica entre ${fmt(inc.nadir_p05)} e ${fmt(inc.nadir_p95)} mmHg em 90% dos casos.` : ""}</small>`;
-  meter($("meter"), mt, inc);
+    <small>${mt.risco === "ALTO" ? "A PAM mínima prevista fica abaixo de 55 mmHg." : mt.risco === "MODERADO"
+      ? "A PAM mínima prevista fica entre 55 e 65 mmHg." : "A PAM mínima prevista fica em 65 mmHg ou mais."}</small>`;
+  meter($("meter"), mt);
   // blocos
   $("tNadir").innerHTML = `${fmt(mt.pam_basal)} → ${fmt(mt.pam_nadir)} <small>mmHg</small>`;
   $("tNadirS").textContent = `em ${fmt(mt.t_nadir, 1)} min · PA mínima ${fmt(mt.pas_nadir)}/${fmt(mt.pad_nadir)}`;
   $("t65").innerHTML = `${fmt(mt.min_abaixo_65, 1)} <small>min</small>`;
-  $("t65S").textContent = mt.min_abaixo_55 > 0 ? `${fmt(mt.min_abaixo_55, 1)} min abaixo de 55 mmHg` : "nenhum minuto abaixo de 55 mmHg";
-  $("p65").innerHTML = inc ? `${fmt(100 * inc.prob65)}<small>%</small>` : '<small class="loading-dots">calculando</small>';
-  $("p55").innerHTML = inc ? `${fmt(100 * inc.prob55)}<small>%</small>` : '<small class="loading-dots">calculando</small>';
+  $("t65S").textContent = "limiar associado a lesão de órgãos";
+  $("tQueda").innerHTML = `${fmt(mt.queda_pct)}<small>%</small>`;
+  $("tQuedaS").textContent = `da PAM basal, em ${fmt(mt.t_nadir, 1)} min`;
+  $("t55").innerHTML = `${fmt(mt.min_abaixo_55, 1)} <small>min</small>`;
   $("tBis").innerHTML = mt.t_hipnose != null ? `${fmt(mt.t_hipnose, 1)} <small>min</small>` : "não atingida";
   $("tBisS").textContent = `BIS mínimo ${fmt(mt.bis_min)} · ${fmt(mt.tempo_hipnose, 1)} min abaixo de 60`;
 
@@ -725,8 +716,6 @@ function renderTudo() {
   const S1 = css("--s1"), S2 = css("--s2"), S3 = css("--s3"), S4 = css("--s4");
   const bands = [{ x: b.t, lo: b.pad, hi: b.pas, color: css("--band-pa") }];
   const leg = [{ cor: S1, txt: "PAM prevista" }, { cor: css("--band-pa"), tipo: "box", txt: "PAS–PAD" }];
-  if (inc) { bands.push({ x: inc.t, lo: inc.p05, hi: inc.p95, color: css("--band"), label: "PAM, faixa 90%" });
-    leg.push({ cor: css("--band"), tipo: "box", txt: "faixa de 90% (variabilidade entre pacientes)" }); }
   leg.push({ cor: css("--serious"), tipo: "dash", txt: "65 mmHg" }, { cor: css("--crit"), tipo: "dash", txt: "55 mmHg" });
   legenda($("legPA"), leg);
   chart($("chPA"), { h: 300, xMin: Math.min(...b.t), xMax: xmax, xLabel: "minutos após o início do bolus", xTip: minTip,
@@ -770,7 +759,8 @@ function renderTudo() {
     ["Sensibilidade ao propofol (s)", `${fmt(v.s, 2)}×`],
     ["IMC / massa magra", `${fmt(v.imc, 1)} kg/m² / ${fmt(v.lbm, 1)} kg`],
     [`PK ${v.modelo_pk}: CL / V1 / V2 / V3`, `${fmt(v.cl, 2)} / ${fmt(v.v1, 2)} / ${fmt(v.v2, 1)} / ${fmt(v.v3)}`],
-    ["ke0 (sítio efetor)", `${fmt(v.ke0, 3)} /min`],
+    ["ke0 (sítio efetor, hemodinâmica)", `${fmt(v.ke0, 3)} /min`],
+    ["BIS (Eleveld): ke0 / atraso", `${fmt(v.ke0_bis, 3)} /min / ${fmt(v.atraso_bis)} s`],
     ["Ce50 do BIS (Eleveld, idade)", `${fmt(v.ce50_bis, 2)} µg/ml`],
     ["Calibração", v.convergiu ? "PAM e pressão de pulso reproduzidas" : "pressão de pulso não atingida — interpretar com cautela"]];
   $("params").innerHTML = P.map(([k, x]) => `<div><dt>${k}</dt><dd>${x}</dd></div>`).join("");
