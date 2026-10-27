@@ -1,17 +1,32 @@
+# GitHub Actions: roda os testes automáticos do modelo (test/runtests.jl) na
+# nuvem do GitHub a cada envio de commits (push) e a cada pull request.
+# Ninguém precisa rodar este arquivo: o GitHub o lê sozinho. O resultado
+# aparece na aba "Actions" do repositório (verde = passou, vermelho = falhou).
+# Para rodar os mesmos testes no seu computador, na pasta do projeto:
+#   julia --project=. -e "using Pkg; Pkg.test()"
+# Em YAML, a indentação (espaços no início da linha) define a estrutura.
 name: Testes (verificação do modelo)
+# Quando roda: a cada push e a cada pull request.
 on:
   push:
   pull_request:
+# Um único trabalho (job), chamado test, numa máquina virtual Ubuntu.
 jobs:
   test:
     runs-on: ubuntu-latest
+    # Passos, na ordem. Cada "- uses" chama uma ação pronta do GitHub/Julia.
     steps:
+      # 1. baixa o código do repositório
       - uses: actions/checkout@v4
+      # 2. instala o Julia 1.11
       - uses: julia-actions/setup-julia@v2
         with:
           version: '1.11'
+      # 3. guarda os pacotes baixados entre execuções (fica mais rápido)
       - uses: julia-actions/cache@v2
+      # 4. instala os pacotes do projeto (Project.toml e Manifest.toml)
       - uses: julia-actions/julia-buildpkg@v1
+      # 5. roda os testes (o mesmo que Pkg.test())
       - uses: julia-actions/julia-runtest@v1
 
 #Nesse passo é definido um fluxo de Integração Contínua para 

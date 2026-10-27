@@ -53,9 +53,12 @@ Paciente ──► PK, ke0 e atraso de Eleveld ───────────
 | sensibilidade | *s* = 1 + 0,01(idade−50)⁺ + 0,15(ASA−2)⁺ + 0,03(PVI−15)⁺ + 0,01(IVCI−43)⁺ | grupo; limiares de PVI e IVCI da literatura |
 | paciente virtual | Rp = PAM/DC; **C identificado** para reproduzir a pressão de pulso medida | extensão |
 
+**Como o código funciona e como reproduzir do zero:** **[docs/guia_do_codigo.md](docs/guia_do_codigo.md)**
+(cada arquivo também tem comentários em cada bloco) ·
 Equações completas: **[docs/modelo_matematico.md](docs/modelo_matematico.md)** ·
 **Validação e rastreabilidade** (arquivo e linha de cada valor, fonte, veredito, pendências e
-bibliografia): **[docs/validacao.md](docs/validacao.md)** ·
+bibliografia): **[docs/validacao.md](docs/validacao.md)** · **Ordem de revisão do código, com vieses:**
+**[docs/roteiro_de_validacao.md](docs/roteiro_de_validacao.md)** ·
 Revisão inicial de repositórios: [docs/revisao_github_literatura.md](docs/revisao_github_literatura.md)
 
 ## Instalação e uso
@@ -103,7 +106,7 @@ pkpd, batimentos, onda = simular_paciente(p; tfim = 30.0, forma_de_onda = true)
 | `05_sensibilidade.jl dados/paciente_exemplo.toml` | sensibilidade local (±10%) dos parâmetros do grupo |
 | `06_identificacao_windkessel.jl` | identificação do Windkessel 2/3/4 elementos (Stergiopulos e in vivo) |
 
-Testes: `julia --project=. -e "using Pkg; Pkg.test()"` (163 testes, inclusive os do grupo, a conferência do
+Testes: `julia --project=. -e "using Pkg; Pkg.test()"` (203 testes, inclusive os do grupo, a conferência do
 Eleveld contra o PAS e a dos links de [docs/validacao.md](docs/validacao.md)).
 
 ## Resultados (com os parâmetros ilustrativos do grupo)
