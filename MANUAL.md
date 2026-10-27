@@ -5,8 +5,8 @@
 | | |
 |---|---|
 | Repositório | [github.com/vivianguilger-lab/PBL_6](https://github.com/vivianguilger-lab/PBL_6) |
-| Download direto (ZIP) | [PBL_6 — ZIP](https://github.com/vivianguilger-lab/PBL_6/archive/refs/heads/claude/windkessel-propofol-hemodynamic-p72qsk.zip) |
-| Manual no repositório | [MANUAL.md](https://github.com/vivianguilger-lab/PBL_6/blob/claude/windkessel-propofol-hemodynamic-p72qsk/MANUAL.md) |
+| Download direto (ZIP) | [PBL_6 — ZIP](https://github.com/vivianguilger-lab/PBL_6/archive/refs/heads/main.zip) |
+| Manual no repositório | [MANUAL.md](https://github.com/vivianguilger-lab/PBL_6/blob/main/MANUAL.md) |
 | O que precisa | Windows 10/11, macOS ou Linux; internet na primeira vez; cerca de 3 GB livres |
 
 ## 1. Instalar (só na primeira vez)
@@ -47,7 +47,7 @@ baixa e compila os pacotes.
 
 ```julia
 using Pkg
-Pkg.add(url="https://github.com/vivianguilger-lab/PBL_6", rev="claude/windkessel-propofol-hemodynamic-p72qsk")
+Pkg.add(url="https://github.com/vivianguilger-lab/PBL_6")
 ```
 
 ## 2. Abrir a plataforma (todas as vezes)

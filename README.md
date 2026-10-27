@@ -16,7 +16,7 @@ acrescenta calibração com PAS/PAD, métricas de hipotensão, janela de dose, f
 coorte virtual e uma plataforma web para médicos.
 
 > **Para usar:** leia o **[MANUAL.md](MANUAL.md)** (passo a passo). Resumo: baixe o
-> [ZIP](https://github.com/vivianguilger-lab/PBL_6/archive/refs/heads/claude/windkessel-propofol-hemodynamic-p72qsk.zip),
+> [ZIP](https://github.com/vivianguilger-lab/PBL_6/archive/refs/heads/main.zip),
 > extraia e dê duplo clique em `abrir_plataforma.bat` (Windows) ou `abrir_plataforma.command`
 > (macOS/Linux) — o Julia é instalado sozinho se faltar.
 
@@ -68,7 +68,7 @@ Linux/macOS `curl -fsSL https://install.julialang.org | sh`).
 
 ```julia
 using Pkg
-Pkg.add(url="https://github.com/vivianguilger-lab/PBL_6", rev="claude/windkessel-propofol-hemodynamic-p72qsk")
+Pkg.add(url="https://github.com/vivianguilger-lab/PBL_6")
 using PropofolWindkessel
 plataforma()          # abre http://localhost:8080
 ```
