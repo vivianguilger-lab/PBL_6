@@ -1,13 +1,25 @@
 <!doctype html>
 <html lang="pt-BR">
+<!-- Página da plataforma web do PBL-6: modelo in silico que prevê a pressão arterial durante a indução anestésica com propofol. -->
+<!-- Este único arquivo reúne as três linguagens da web: HTML (a estrutura), CSS (a aparência, no bloco style) e JavaScript (o comportamento, no bloco script). -->
+<!-- Quem entrega esta página ao navegador é o servidor em Julia (src/plataforma.jl). Todo o cálculo do modelo roda lá; a página só coleta os dados, pede a simulação e desenha os resultados. -->
+<!-- O servidor só aceita conexões do próprio computador (127.0.0.1): os dados do paciente não saem da máquina. -->
 <head>
+<!-- Cabeçalho técnico (head): codificação do texto (UTF-8, para os acentos), ajuste à largura da tela do celular e título da aba do navegador. -->
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>PBL-6° Semestre — Modelagem In Silico para Predição Hemodinâmica da Resposta de Indução Anestésica via Propofol </title>
+<!-- Fontes tipográficas do Google Fonts: Fraunces (títulos) e Inter (textos). Sem internet, o navegador usa fontes de reserva parecidas. -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<!-- Bloco de estilos (CSS): define cores, tamanhos e posição de cada elemento. Os comentários dentro dele usam o formato barra-asterisco. -->
 <style>
+/* Variáveis de cor e de fonte do tema CLARO (padrão). :root é a raiz da página; todo nome que começa com -- é uma variável. */
+/* O resto do CSS usa var(--nome) em vez de repetir códigos de cor: trocar um valor aqui muda a página inteira. */
+/* --bg e --surface: fundos; --ink: texto; --muted: texto discreto; --grid e --axis: linhas de grade e de eixo dos gráficos. */
+/* --s1, --s2, --s3: cores das curvas (azul, laranja, verde); --band e --band-pa: faixas sombreadas (ex.: PAS-PAD). */
+/* --good, --warn, --crit: verde, amarelo e vermelho do risco baixo, moderado e alto; --hero: azul-escuro do cabeçalho. */
 :root {
   color-scheme: light;
   --f-display: "Fraunces", "Iowan Old Style", Georgia, "Times New Roman", serif;
@@ -24,6 +36,8 @@
   --shadow: 0 1px 2px rgba(16,24,40,.04), 0 8px 24px -8px rgba(16,24,40,.10);
   --shadow-lg: 0 2px 4px rgba(16,24,40,.04), 0 18px 40px -12px rgba(16,24,40,.18);
 }
+/* Tema ESCURO automático: vale quando o sistema do usuário está em modo escuro, a não ser que ele tenha escolhido o claro no botão Tema. */
+/* Só os valores das variáveis mudam; as regras de estilo abaixo continuam as mesmas. */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     color-scheme: dark;
@@ -38,6 +52,7 @@
     --shadow: none; --shadow-lg: none;
   }
 }
+/* Tema ESCURO escolhido no botão Tema (atributo data-theme="dark", posto pelo JavaScript). Repete os mesmos valores do bloco acima. */
 :root[data-theme="dark"] {
   color-scheme: dark;
   --bg: #0d0d0d; --surface: #1a1a19; --surface-2: #232321; --surface-3: #2c2c2a; --border: rgba(255,255,255,.09);
@@ -50,13 +65,17 @@
   --hero: #0a1626; --hero-2: #10263f;
   --shadow: none; --shadow-lg: none;
 }
+/* Regras gerais: as medidas incluem a borda (box-sizing), fundo e cor do texto vêm das variáveis, fonte base de 15 px. */
 * { box-sizing: border-box; }
 html, body { margin: 0; background: var(--bg); color: var(--ink);
   font: 15px/1.5 var(--f-ui); -webkit-font-smoothing: antialiased; }
 button, input, select { font: inherit; color: inherit; }
+/* A classe .num alinha os algarismos em colunas (todos com a mesma largura). */
 .num { font-variant-numeric: tabular-nums; }
 
 /* ---------------------------------------------------------------- cabeçalho */
+/* .hero é a faixa azul-escura do topo; .ecg é o traçado de ECG decorativo ao fundo, quase transparente. */
+/* .logo, .tags e .icon-btn: ícone, etiquetas e botões arredondados (como o botão Tema). */
 .hero { position: relative; overflow: hidden; color: var(--hero-ink);
   background: linear-gradient(120deg, var(--hero) 0%, var(--hero-2) 100%); padding: 22px 28px 92px; }
 .hero .ecg { position: absolute; inset: auto 0 22px 0; width: 100%; height: 70px; opacity: .10; pointer-events: none; }
@@ -78,10 +97,14 @@ button, input, select { font: inherit; color: inherit; }
 .icon-btn svg { width: 15px; height: 15px; }
 
 /* ---------------------------------------------------------------- layout */
+/* Layout em GRADE (grid): duas colunas, o formulário com 350 px à esquerda e os resultados ocupando o resto. */
+/* A margem negativa (-68px) sobe o conteúdo para dentro da faixa azul do cabeçalho. */
 .layout { display: grid; grid-template-columns: 350px minmax(0, 1fr); gap: 22px; padding: 0 28px 48px;
   max-width: 1536px; margin: -68px auto 0; position: relative; }
+/* Responsividade: em telas de até 1020 px (tablet, celular) a grade vira uma coluna só e as etiquetas do topo somem. */
 @media (max-width: 1020px) { .layout { grid-template-columns: 1fr; padding: 0 16px 32px; }
   .hero { padding: 18px 16px 84px; } .hero .tags .tag { display: none; } }
+/* .card é o cartão: caixa de cantos arredondados usada em cada seção; .hd é o título e .bd o corpo do cartão. */
 .card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; box-shadow: var(--shadow); }
 .card > .hd { padding: 18px 22px 0; display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
 .card > .hd .idx { font: 600 12px/1 var(--f-ui); color: var(--muted); letter-spacing: .08em; }
@@ -91,11 +114,14 @@ button, input, select { font: inherit; color: inherit; }
 .sec-note { font-size: 13px; color: var(--ink-2); margin: -4px 0 10px; }
 
 /* ---------------------------------------------------------------- formulário */
+/* O formulário fica grudado na tela (sticky) ao rolar a página e tem rolagem própria se for mais alto que a janela. */
 aside.form { position: sticky; top: 16px; align-self: start; box-shadow: var(--shadow-lg); max-height: calc(100vh - 32px);
   display: flex; flex-direction: column; }
 aside.form form { display: flex; flex-direction: column; flex: 1; min-height: 0; }
 aside.form .form-bd { overflow: auto; flex: 1; min-height: 0; padding: 0 22px 8px; }
+/* No celular o formulário deixa de ser fixo e rola junto com a página. */
 @media (max-width: 1020px) { aside.form { position: static; max-height: none; } aside.form .form-bd { overflow: visible; } }
+/* Título do formulário, grupos de campos (fieldset) separados por linha tracejada e o número redondo de cada seção (legend .n). */
 .form-hd { padding: 18px 22px 12px; border-bottom: 1px solid var(--border); }
 .form-hd h2 { font: 600 19px/1.2 var(--f-display); margin: 0; }
 .form-hd p { margin: 4px 0 0; font-size: 13px; color: var(--ink-2); }
@@ -106,6 +132,7 @@ legend { display: flex; align-items: center; gap: 8px; font-size: 12px; font-wei
 legend + * { clear: both; }
 legend .n { width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center; font-size: 11px;
   background: var(--surface-2); border: 1px solid var(--border-2); color: var(--ink); letter-spacing: 0; }
+/* .grid2 põe os campos em duas colunas; .inp é a caixa de cada campo, com a unidade (kg, mmHg) à direita. */
 .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 12px; }
 label.f { display: flex; flex-direction: column; gap: 5px; font-size: 13px; color: var(--ink-2); font-weight: 500; }
 .inp { display: flex; align-items: center; border: 1px solid var(--border-2); border-radius: 10px; background: var(--surface);
@@ -115,11 +142,13 @@ label.f { display: flex; flex-direction: column; gap: 5px; font-size: 13px; colo
 .inp input, .inp select { border: 0; outline: 0; background: transparent; width: 100%; min-width: 0; height: 38px;
   font-variant-numeric: tabular-nums; font-weight: 500; color: var(--ink); }
 .inp .u { color: var(--muted); font-size: 12px; padding-left: 6px; white-space: nowrap; font-weight: 400; }
+/* .seg é o botão duplo Feminino/Masculino; o lado escolhido (aria-pressed="true") fica destacado. */
 .seg { display: grid; grid-template-columns: 1fr 1fr; border: 1px solid var(--border-2); border-radius: 10px; overflow: hidden;
   height: 40px; padding: 3px; gap: 3px; background: var(--surface-2); }
 .seg button { border: 0; background: transparent; cursor: pointer; color: var(--ink-2); border-radius: 7px; font-size: 13px; }
 .seg button[aria-pressed="true"] { background: var(--surface); color: var(--ink); font-weight: 600;
   box-shadow: 0 1px 2px rgba(0,0,0,.08), 0 0 0 1px var(--border); }
+/* Seção da dose: número grande em mg/kg, régua deslizante (input range) e a escala de 0,5 a 3,0 embaixo. */
 .dose-big { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin: 2px 0 6px; }
 .dose-big .v { font: 600 30px/1 var(--f-display); font-variant-numeric: tabular-nums; }
 .dose-big .v small { font: 500 13px var(--f-ui); color: var(--ink-2); margin-left: 4px; }
@@ -130,7 +159,9 @@ input[type=range] { flex: 1; accent-color: var(--accent); height: 22px; }
 .range-scale { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); margin: -2px 2px 0 2px;
   font-variant-numeric: tabular-nums; }
 .dose-total { font-size: 12.5px; color: var(--ink-2); margin-top: 6px; line-height: 1.45; }
+/* details.opt: o bloco que abre e fecha (Débito cardíaco medido). */
 details.opt summary { cursor: pointer; font-size: 13px; color: var(--accent); margin: 10px 0 8px; font-weight: 500; }
+/* Rodapé do formulário: botão azul Simular (.btn), botões de exemplo (.chip) e a caixa vermelha de erro (.err, escondida até haver erro). */
 .form-ft { padding: 14px 22px 18px; border-top: 1px solid var(--border); background: var(--surface); border-radius: 0 0 16px 16px; }
 .btn { width: 100%; height: 46px; border: 0; border-radius: 11px; color: var(--accent-ink); font-weight: 600; cursor: pointer;
   font-size: 15px; display: flex; align-items: center; justify-content: center; gap: 8px; letter-spacing: .01em;
@@ -148,6 +179,7 @@ details.opt summary { cursor: pointer; font-size: 13px; color: var(--accent); ma
   color: var(--crit-ink); font-size: 13px; }
 
 /* ---------------------------------------------------------------- resultados */
+/* main é a coluna de resultados. .empty é a tela inicial (antes da primeira simulação), com os três passos de uso. */
 main { display: flex; flex-direction: column; gap: 18px; min-width: 0; }
 .empty { padding: 64px 28px; text-align: center; color: var(--ink-2); box-shadow: var(--shadow-lg); }
 .empty .ill { width: 92px; height: 92px; margin: 0 auto 8px; border-radius: 24px; display: grid; place-items: center;
@@ -156,11 +188,14 @@ main { display: flex; flex-direction: column; gap: 18px; min-width: 0; }
 .empty h2 { color: var(--ink); font: 600 24px/1.25 var(--f-display); margin: 14px 0 8px; }
 .empty p { max-width: 560px; margin: 0 auto 8px; }
 .steps { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; max-width: 760px; margin: 26px auto 0; text-align: left; }
+/* Em telas estreitas os três passos ficam um embaixo do outro. */
 @media (max-width: 760px) { .steps { grid-template-columns: 1fr; } }
 .steps div { border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; background: var(--surface); }
 .steps b { display: block; font: 600 15px var(--f-display); color: var(--ink); margin-bottom: 2px; }
 .steps span { font-size: 13px; }
 
+/* Cartão de risco (.risk): faixa colorida à esquerda e ícone redondo. A cor vem da classe BAIXO, MODERADO ou ALTO, */
+/* colocada pelo JavaScript conforme o risco devolvido pelo servidor. */
 .risk { position: relative; overflow: hidden; padding: 20px 22px 14px 26px; box-shadow: var(--shadow-lg); }
 .risk::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 6px; }
 .risk.BAIXO::before { background: var(--good); } .risk.MODERADO::before { background: var(--warn); } .risk.ALTO::before { background: var(--crit); }
@@ -176,9 +211,11 @@ main { display: flex; flex-direction: column; gap: 18px; min-width: 0; }
 .risk.BAIXO .lvl { color: var(--good-ink); } .risk.MODERADO .lvl { color: var(--warn-ink); } .risk.ALTO .lvl { color: var(--crit-ink); }
 .risk .txt { flex: 1 1 340px; font-size: 15.5px; color: var(--ink); }
 .risk .txt small { display: block; color: var(--ink-2); font-size: 13px; margin-top: 4px; }
+/* .meter é a régua da PAM, desenhada em SVG logo abaixo do texto de risco. */
 .meter { margin-top: 10px; }
 .meter svg { display: block; width: 100%; overflow: visible; }
 
+/* .tiles: os 5 blocos de números (PAM mínima, tempo abaixo de 65 etc.) em 5 colunas; 3 colunas em telas médias e 2 no celular. */
 .tiles { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 14px; }
 @media (max-width: 1250px) { .tiles { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 @media (max-width: 560px) { .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
@@ -187,21 +224,26 @@ main { display: flex; flex-direction: column; gap: 18px; min-width: 0; }
 .tile .v { font: 600 clamp(21px, 1.75vw, 27px)/1.15 var(--f-display); white-space: nowrap; margin-top: 6px; font-variant-numeric: tabular-nums; letter-spacing: -.01em; }
 .tile .v small { font: 500 13px var(--f-ui); color: var(--ink-2); margin-left: 2px; letter-spacing: 0; }
 .tile .s { font-size: 12px; color: var(--muted); margin-top: 3px; line-height: 1.4; }
+/* Animação das reticências enquanto calcula. */
 .loading-dots::after { content: "…"; animation: blink 1s infinite; }
 @keyframes blink { 50% { opacity: .2; } }
+/* .legend e .sw: legenda dos gráficos, com a amostra de cor de cada curva (linha, caixa ou tracejado). */
 .legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 12px; color: var(--ink-2); margin: 0 0 8px; }
 .legend span { display: inline-flex; align-items: center; gap: 6px; }
 .sw { width: 16px; height: 3px; border-radius: 2px; display: inline-block; }
 .sw.box { height: 10px; border-radius: 3px; }
 .sw.dash { background: repeating-linear-gradient(90deg, currentColor 0 4px, transparent 4px 7px) !important; height: 2px; }
+/* .chart é a caixa de cada gráfico; .tip é o quadro flutuante (tooltip) com os valores, que aparece ao passar o mouse. */
 .chart { position: relative; width: 100%; }
 .chart svg { display: block; width: 100%; overflow: visible; }
 .tip { position: absolute; pointer-events: none; background: var(--surface); border: 1px solid var(--border-2);
   border-radius: 10px; padding: 9px 11px; font-size: 12px; box-shadow: 0 8px 24px rgba(0,0,0,.14); display: none;
   white-space: nowrap; z-index: 3; font-variant-numeric: tabular-nums; }
 .tip b { font-weight: 600; } .tip .row { display: flex; align-items: center; gap: 6px; line-height: 1.6; }
+/* .grid2c põe os gráficos 02 a 05 em duas colunas (uma só abaixo de 800 px). */
 .grid2c { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
 @media (max-width: 800px) { .grid2c { grid-template-columns: 1fr; } }
+/* Tabela de doses: números alinhados à direita, linha da dose atual destacada (.sel) e cursor de clique em cada linha. */
 table.doses { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 13px; font-variant-numeric: tabular-nums; }
 table.doses th { text-align: right; font-weight: 600; color: var(--ink-2); padding: 8px 10px; border-bottom: 1px solid var(--border-2);
   font-size: 11.5px; text-transform: uppercase; letter-spacing: .05em; }
@@ -210,6 +252,7 @@ table.doses td { text-align: right; padding: 8px 10px; border-bottom: 1px solid 
 table.doses tr.sel td { background: color-mix(in srgb, var(--accent) 9%, transparent); font-weight: 600; }
 table.doses tr.sel td:first-child { box-shadow: inset 3px 0 0 var(--accent); }
 table.doses tbody tr { cursor: pointer; } table.doses tbody tr:hover td { background: var(--surface-2); }
+/* .tbl-wrap deixa a tabela rolar para o lado em telas pequenas. .pill é a etiqueta colorida de risco em cada linha. */
 .tbl-wrap { overflow-x: auto; margin-top: 12px; }
 .pill { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; padding: 2px 9px 2px 7px;
   border-radius: 999px; }
@@ -217,6 +260,7 @@ table.doses tbody tr { cursor: pointer; } table.doses tbody tr:hover td { backgr
 .pill.BAIXO { background: var(--good-bg); color: var(--good-ink); } .pill.BAIXO i { background: var(--good); }
 .pill.MODERADO { background: var(--warn-bg); color: var(--warn-ink); } .pill.MODERADO i { background: var(--warn); }
 .pill.ALTO { background: var(--crit-bg); color: var(--crit-ink); } .pill.ALTO i { background: var(--crit); }
+/* .window: caixa com a faixa de dose sugerida. .mech: os três cartões do bloco Por que a pressão cai?. */
 .window { padding: 12px 14px; border-radius: 12px; background: var(--surface-2); font-size: 14px; margin-bottom: 12px;
   border: 1px solid var(--border); display: flex; gap: 12px; align-items: flex-start; }
 .window svg { width: 20px; height: 20px; flex: none; margin-top: 1px; color: var(--ink-2); }
@@ -226,17 +270,21 @@ table.doses tbody tr { cursor: pointer; } table.doses tbody tr:hover td { backgr
 .mech .k { font-size: 12.5px; color: var(--ink-2); display: flex; align-items: center; gap: 7px; font-weight: 500; }
 .mech .v { font: 600 24px/1.2 var(--f-display); font-variant-numeric: tabular-nums; margin-top: 2px; }
 .mech .d { font-size: 12px; color: var(--muted); }
+/* dl.params: lista de parâmetros do paciente virtual (nome à esquerda, valor à direita). */
 dl.params { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 0 22px; margin: 0; font-size: 13px; }
 dl.params div { display: flex; justify-content: space-between; gap: 10px; border-bottom: 1px solid var(--border); padding: 8px 0; }
 dl.params dt { color: var(--ink-2); } dl.params dd { margin: 0; font-weight: 600; font-variant-numeric: tabular-nums; text-align: right; }
+/* Rodapé: aviso de uso educacional e botões de imprimir e de baixar CSV. .hidden esconde qualquer elemento. */
 .foot { display: flex; gap: 18px; align-items: flex-start; flex-wrap: wrap; }
 .disclaimer { font-size: 12.5px; color: var(--ink-2); line-height: 1.55; margin: 0; flex: 1 1 420px; }
 .actions { display: flex; gap: 8px; flex-wrap: wrap; }
 .hidden { display: none !important; }
+/* .spin é a rodinha girando no botão enquanto calcula. Quem pediu menos movimento nas configurações do sistema não vê animações. */
 .spin { width: 16px; height: 16px; border: 2px solid rgba(255,255,255,.4); border-top-color: #fff; border-radius: 50%;
   animation: rot .8s linear infinite; }
 @keyframes rot { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) { .spin, .loading-dots::after { animation: none; } }
+/* Impressão (ou salvar como PDF): some com o formulário, os botões e o fundo escuro; tudo em uma coluna e sem cartões cortados entre páginas. */
 @media print {
   .hero { background: none; color: var(--ink); padding: 0 0 12px; } .hero .ecg, .hero .icon-btn, .hero .tags { display: none !important; }
   .hero .sub { color: var(--ink-2); } .logo { display: none; }
@@ -247,10 +295,14 @@ dl.params dt { color: var(--ink-2); } dl.params dd { margin: 0; font-weight: 600
 </style>
 </head>
 <body>
+<!-- ================ CORPO DA PÁGINA (body): o que aparece na tela ================ -->
+<!-- Cabeçalho (header): faixa azul com o traçado de ECG decorativo, o logotipo, o título e o botão de tema. -->
+<!-- SVG é um formato de desenho por coordenadas (linhas, círculos, caminhos) escrito dentro do próprio HTML. -->
 <header class="hero">
   <svg class="ecg" viewBox="0 0 1200 90" preserveAspectRatio="none" aria-hidden="true">
     <path d="M0 55 H180 l14 -6 l10 6 H260 l8 -42 l10 72 l9 -30 H340 l14 -8 l12 8 H560 l14 -6 l10 6 H640 l8 -42 l10 72 l9 -30 H720 l14 -8 l12 8 H940 l14 -6 l10 6 H1020 l8 -42 l10 72 l9 -30 H1100 l14 -8 l12 8 H1200"
       fill="none" stroke="#fff" stroke-width="2" stroke-linejoin="round"/></svg>
+  <!-- Logotipo, título e subtítulo; à direita, as etiquetas dos modelos e o botão Tema (id="tema", usado pelo JavaScript). -->
   <div class="hero-in">
     <div class="logo" aria-hidden="true">
       <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -270,14 +322,19 @@ dl.params dt { color: var(--ink-2); } dl.params dd { margin: 0; font-weight: 600
   </div>
 </header>
 
+<!-- Área principal em grade: à esquerda o formulário (aside), à direita os resultados (main). -->
 <div class="layout">
+  <!-- Formulário de dados pré-indução. Cada campo tem um id (idade, peso, pas...) que o JavaScript usa para ler o valor. -->
   <aside class="form card">
     <div class="form-hd">
       <h2>Dados pré-indução</h2>
       <p>Os valores do monitor calibram o paciente virtual.</p>
     </div>
+    <!-- O formulário tem 4 seções (fieldset): 1 Paciente, 2 Monitor, 3 Risco e volemia, 4 Protocolo de indução. -->
+    <!-- Os limites min e max de cada campo seguem as faixas aceitas pelo servidor (por exemplo, idade de 18 a 95 anos). -->
     <form id="form" autocomplete="off">
       <div class="form-bd">
+      <!-- Seção 1, Paciente: idade, sexo (dois botões, não é caixa de texto), peso e altura. Entram na farmacocinética e na massa magra. -->
       <fieldset>
         <legend><span class="n">1</span>Paciente</legend>
         <div class="grid2">
@@ -289,6 +346,7 @@ dl.params dt { color: var(--ink-2); } dl.params dd { margin: 0; font-weight: 600
           <label class="f">Altura<div class="inp"><input id="altura" type="number" inputmode="decimal" min="130" max="215" step="1" value="160"><span class="u">cm</span></div></label>
         </div>
       </fieldset>
+      <!-- Seção 2, Monitor: PAS, PAD, FC e PAM pré-indução. Calibram o paciente virtual (Rp = PAM/DC; complacência C pela pressão de pulso). -->
       <fieldset>
         <legend><span class="n">2</span>Monitor</legend>
         <div class="grid2">
@@ -297,10 +355,12 @@ dl.params dt { color: var(--ink-2); } dl.params dd { margin: 0; font-weight: 600
           <label class="f">FC<div class="inp"><input id="fc" type="number" inputmode="decimal" min="35" max="160" value="78"><span class="u">bpm</span></div></label>
           <label class="f">PAM<div class="inp"><input id="pam" type="number" inputmode="decimal" min="40" max="200" value="104"><span class="u">mmHg</span></div></label>
         </div>
+        <!-- Campo opcional: se o DC ficar em branco, o servidor o estima (3,0 L/min/m² × superfície corporal). -->
         <details class="opt"><summary>Débito cardíaco medido (opcional)</summary>
           <label class="f">DC<div class="inp"><input id="dc" type="number" inputmode="decimal" step="0.1" placeholder="estimado: 3,0 L/min/m² × sup. corporal"><span class="u">L/min</span></div></label>
         </details>
       </fieldset>
+      <!-- Seção 3, Risco e volemia: ASA, PVI e IVCI. Valores altos aumentam o fator de sensibilidade s ao propofol. -->
       <fieldset>
         <legend><span class="n">3</span>Risco e volemia</legend>
         <div class="grid2">
@@ -312,24 +372,29 @@ dl.params dt { color: var(--ink-2); } dl.params dd { margin: 0; font-weight: 600
         </div>
         <div class="dose-total">Idade &gt; 50, ASA ≥ III, PVI &gt; 15% e IVCI &gt; 43% aumentam a sensibilidade ao propofol.</div>
       </fieldset>
+      <!-- Seção 4, Protocolo de indução: dose (régua deslizante e caixa numérica sincronizadas), tempo de injeção, manutenção e modelo PK. -->
       <fieldset>
         <legend><span class="n">4</span>Protocolo de indução</legend>
+        <!-- doseBig e doseTotal são preenchidos pelo JavaScript: dose em mg/kg e total em mg para o peso informado. -->
         <div class="dose-big"><div class="v" id="doseBig"></div><div class="t" id="doseTotal"></div></div>
         <div class="dose-row">
           <input id="doseR" type="range" min="0.5" max="3" step="0.05" value="1.5" aria-label="Dose em mg/kg">
           <div class="inp" style="width:112px"><input id="dose" type="number" step="0.05" min="0.25" max="4" value="1.5" aria-label="Dose (mg/kg)"><span class="u">mg/kg</span></div>
         </div>
         <div class="range-scale" style="margin-right:124px"><span>0,5</span><span>1,0</span><span>1,5</span><span>2,0</span><span>2,5</span><span>3,0</span></div>
+        <!-- Tempo de injeção do bolus e infusão de manutenção que segue o bolus. -->
         <div class="grid2" style="margin-top:12px">
           <label class="f">Tempo de injeção<div class="inp"><select id="dur">
             <option value="10">10 s</option><option value="20">20 s</option><option value="30" selected>30 s</option>
             <option value="60">1 min</option><option value="120">2 min</option></select></div></label>
           <label class="f">Manutenção<div class="inp"><input id="manut" type="number" min="0" max="300" step="10" value="100"><span class="u">µg/kg/min</span></div></label>
         </div>
+        <!-- Modelo farmacocinético usado para calcular Cp e Ce: Schnider, Marsh ou Eleveld. -->
         <label class="f" style="margin-top:10px">Modelo farmacocinético<div class="inp"><select id="modelo">
           <option value="schnider" selected>Schnider</option><option value="marsh">Marsh</option><option value="eleveld">Eleveld</option></select></div></label>
       </fieldset>
       </div>
+      <!-- Rodapé do formulário: botão Simular, caixa de erro e botões de exemplo (data-ex 0, 1 e 2 indicam qual paciente de exemplo). -->
       <div class="form-ft">
         <button class="btn" id="btn" type="submit"><span id="btnTxt">Simular</span></button>
         <div class="err" id="err" role="alert"></div>
@@ -343,7 +408,9 @@ dl.params dt { color: var(--ink-2); } dl.params dd { margin: 0; font-weight: 600
     </form>
   </aside>
 
+  <!-- Coluna de resultados (main). Começa com a tela inicial (vazio); depois da 1ª simulação ela some e aparece o bloco res. -->
   <main id="main">
+    <!-- Tela inicial: ilustração e os três passos de uso. -->
     <section class="card empty" id="vazio">
       <div class="ill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4l2-5 4 10 2-5h6"/></svg></div>
       <h2>Preveja a pressão arterial antes da injeção</h2>
@@ -356,7 +423,9 @@ dl.params dt { color: var(--ink-2); } dl.params dd { margin: 0; font-weight: 600
       </div>
     </section>
 
+    <!-- Bloco de resultados, escondido (classe hidden) até chegar a primeira resposta do servidor. Os elementos vazios com id são preenchidos pelo JavaScript. -->
     <div id="res" class="hidden" style="display:flex;flex-direction:column;gap:18px">
+      <!-- Cartão de risco: ícone, nível (baixo, moderado ou alto), frase explicativa e a régua da PAM (id="meter"). -->
       <section class="card risk" id="risk">
         <div class="top">
           <div class="ic" id="riskIc"></div>
@@ -369,6 +438,7 @@ dl.params dt { color: var(--ink-2); } dl.params dd { margin: 0; font-weight: 600
         <div class="meter" id="meter" aria-label="Régua da PAM: basal, mínima prevista e faixas de 55 e 65 mmHg"></div>
       </section>
 
+      <!-- Cinco blocos de números (tiles): PAM basal e mínima, tempo com PAM abaixo de 65, queda em %, tempo abaixo de 55 e hipnose. -->
       <div class="tiles">
         <div class="tile"><div class="k">PAM basal → mínima</div><div class="v" id="tNadir"></div><div class="s" id="tNadirS"></div></div>
         <div class="tile"><div class="k">Tempo com PAM &lt; 65</div><div class="v" id="t65"></div><div class="s" id="t65S"></div></div>
@@ -377,6 +447,7 @@ dl.params dt { color: var(--ink-2); } dl.params dd { margin: 0; font-weight: 600
         <div class="tile"><div class="k">Hipnose (BIS &lt; 60)</div><div class="v" id="tBis"></div><div class="s" id="tBisS"></div></div>
       </div>
 
+      <!-- Cartão 01: gráfico principal da pressão arterial ao longo de 20 minutos (desenhado em SVG dentro de id="chPA"). -->
       <section class="card">
         <div class="hd"><span class="idx">01</span><h2>Pressão arterial prevista</h2><span class="hint">20 minutos após o início do bolus · passe o mouse para ver os valores</span></div>
         <div class="bd">
@@ -385,6 +456,7 @@ dl.params dt { color: var(--ink-2); } dl.params dd { margin: 0; font-weight: 600
         </div>
       </section>
 
+      <!-- Cartões 02 a 05, em duas colunas: FC, débito cardíaco, BIS e concentrações de propofol (plasma e sítio efetor). -->
       <div class="grid2c">
         <section class="card"><div class="hd"><span class="idx">02</span><h2>Frequência cardíaca</h2><span class="hint">bpm</span></div><div class="bd"><div class="chart" id="chFC"></div></div></section>
         <section class="card"><div class="hd"><span class="idx">03</span><h2>Débito cardíaco</h2><span class="hint">L/min</span></div><div class="bd"><div class="chart" id="chDC"></div></div></section>
@@ -392,6 +464,8 @@ dl.params dt { color: var(--ink-2); } dl.params dd { margin: 0; font-weight: 600
         <section class="card"><div class="hd"><span class="idx">05</span><h2>Concentração de propofol</h2><span class="hint">µg/ml · modelo PK escolhido · move a hemodinâmica</span></div><div class="bd"><div class="legend" id="legCE"></div><div class="chart" id="chCE"></div></div></section>
       </div>
 
+      <!-- Cartão 06: compara 11 doses (0,5 a 3,0 mg/kg) para o mesmo paciente. Vem de um segundo pedido ao servidor (/api/doses). -->
+      <!-- Mostra Calculando até a resposta chegar; depois a faixa de dose sugerida, o gráfico e a tabela (clicar numa linha simula aquela dose). -->
       <section class="card">
         <div class="hd"><span class="idx">06</span><h2>Comparar doses</h2><span class="hint">mesmo paciente, mesmo tempo de injeção · clique numa linha para simular</span></div>
         <div class="bd">
@@ -407,6 +481,7 @@ dl.params dt { color: var(--ink-2); } dl.params dd { margin: 0; font-weight: 600
         </div>
       </section>
 
+      <!-- Cartão 07: os três efeitos do propofol no modelo (resistência periférica, volume sistólico e FC), em % do basal. -->
       <section class="card">
         <div class="hd"><span class="idx">07</span><h2>Por que a pressão cai?</h2><span class="hint">os três efeitos do propofol no modelo (Emax sigmoide sobre Rp, VS e FC)</span></div>
         <div class="bd">
@@ -416,11 +491,13 @@ dl.params dt { color: var(--ink-2); } dl.params dd { margin: 0; font-weight: 600
         </div>
       </section>
 
+      <!-- Cartão 08: parâmetros calibrados do paciente virtual (Windkessel, farmacocinética, BIS). -->
       <section class="card">
         <div class="hd"><span class="idx">08</span><h2>Paciente virtual</h2><span class="hint">parâmetros calibrados com os dados pré-indução</span></div>
         <div class="bd"><dl class="params" id="params"></dl></div>
       </section>
 
+      <!-- Rodapé: aviso de uso educacional e botões de imprimir e de baixar a curva em CSV (planilha). -->
       <section class="card">
         <div class="bd foot" style="padding-top:18px">
           <p class="disclaimer"><b>Uso educacional e de pesquisa.</b> PK do propofol pelo NeoPKPD (Schnider, Marsh ou
@@ -439,13 +516,27 @@ dl.params dt { color: var(--ink-2); } dl.params dd { margin: 0; font-weight: 600
   </main>
 </div>
 
+<!-- ================ PROGRAMA (JavaScript): dá vida à página ================ -->
+<!-- Lê o formulário, pede o cálculo ao servidor e desenha os resultados. Dentro dele os comentários começam com duas barras. -->
 <script>
+// Termos usados nos comentários abaixo:
+// DOM: a página carregada na memória do navegador, uma árvore de elementos que o JavaScript pode ler e alterar.
+// getElementById / querySelector: procuram um elemento da página, pelo id ou por um seletor do CSS.
+// fetch: envia um pedido ao servidor sem recarregar a página. JSON: formato de texto para trocar dados, como {"idade": 62}.
+// async/await: await espera a resposta do servidor sem travar a página; só pode ser usado dentro de funções async.
+// "use strict" (linha seguinte) liga o modo estrito, que acusa erros comuns de digitação no código.
 "use strict";
+// Atalhos usados em todo o código:
+// $("idade") pega o elemento com id="idade"; fmt(x, d) escreve o número no padrão brasileiro com d casas decimais (ou um traço se faltar);
+// css("--s1") lê o valor atual de uma variável de cor do CSS (que muda com o tema claro/escuro).
 const $ = id => document.getElementById(id);
 const fmt = (x, d = 0) => x == null ? "—" : Number(x).toLocaleString("pt-BR", { minimumFractionDigits: d, maximumFractionDigits: d });
 const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
 
 // ---------------------------------------------------------------- tema
+// Tema claro/escuro. Ao abrir, recupera a escolha salva no navegador (localStorage); sem escolha salva, segue o sistema.
+// O botão Tema inverte o tema atual, grava a escolha e redesenha os gráficos com as novas cores.
+// try/catch evita erro em navegadores que bloqueiam o localStorage (janela anônima, por exemplo).
 (function () {
   let t = null; try { t = localStorage.getItem("pbl6-tema"); } catch (e) {}
   if (t) document.documentElement.dataset.theme = t;
@@ -460,27 +551,34 @@ const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).
 })();
 
 // ---------------------------------------------------------------- formulário
+// Botões de sexo: a variável sexo guarda "F" ou "M"; o botão clicado fica marcado (aria-pressed) e o outro, desmarcado.
 let sexo = "F";
 document.querySelectorAll("[data-sexo]").forEach(b => b.onclick = () => {
   sexo = b.dataset.sexo;
   document.querySelectorAll("[data-sexo]").forEach(o => o.setAttribute("aria-pressed", o === b));
 });
+// setSexo(s) faz o mesmo que clicar no botão do sexo s (usado pelos exemplos).
 function setSexo(s) { document.querySelector(`[data-sexo="${s}"]`).click(); }
+// atualizaDose(): mostra a dose em mg/kg em destaque e o total em mg (dose × peso). O sinal + converte texto em número.
 function atualizaDose() {
   const d = +$("dose").value, p = +$("peso").value;
   $("doseBig").innerHTML = d > 0 ? `${fmt(d, 2)}<small>mg/kg</small>` : "—";
   $("doseTotal").innerHTML = p > 0 && d > 0 ? `total <b>${fmt(d * p)} mg</b><br>para ${fmt(p, 1)} kg` : "";
 }
+// A régua deslizante (doseR) e a caixa numérica (dose) ficam sincronizadas: mexer em uma atualiza a outra.
+// Mudar o peso também recalcula o total em mg. A última linha preenche esses valores ao abrir a página.
 $("doseR").oninput = () => { $("dose").value = $("doseR").value; atualizaDose(); };
 $("dose").oninput = () => { $("doseR").value = $("dose").value; atualizaDose(); };
 $("peso").oninput = atualizaDose;
 atualizaDose();
 
+// Três pacientes de exemplo (os mesmos A, B e C do README), usados pelos botões Exemplos.
 const EXEMPLOS = [
   { idade: 62, sexo: "F", peso: 72, altura: 160, pas: 148, pad: 82, pam: 104, fc: 78, asa: 2, pvi: 12, ivci: 25, dose: 1.5 },
   { idade: 28, sexo: "M", peso: 80, altura: 180, pas: 124, pad: 72, pam: 89, fc: 74, asa: 1, pvi: 9, ivci: 15, dose: 2.0 },
   { idade: 81, sexo: "M", peso: 64, altura: 168, pas: 168, pad: 76, pam: 107, fc: 64, asa: 3, pvi: 18, ivci: 45, dose: 1.5 },
 ];
+// Clicar num exemplo copia os valores para o formulário, apaga o DC opcional, acerta o sexo e a dose e já simula.
 document.querySelectorAll("[data-ex]").forEach(b => b.onclick = () => {
   const e = EXEMPLOS[+b.dataset.ex];
   for (const k of ["idade", "peso", "altura", "pas", "pad", "pam", "fc", "asa", "pvi", "ivci"]) $(k).value = e[k];
@@ -488,6 +586,10 @@ document.querySelectorAll("[data-ex]").forEach(b => b.onclick = () => {
   setSexo(e.sexo); atualizaDose(); simular();
 });
 
+// coletar(): lê o formulário e monta o objeto enviado ao servidor, no formato que ele espera:
+// { paciente: {idade, sexo, peso, ...}, protocolo: {dose_mgkg, duracao_bolus_s, manutencao_ugkgmin, modelo_pk} }.
+// Campo obrigatório vazio gera um erro com mensagem para o usuário. DC, ASA, PVI e IVCI só vão se preenchidos
+// (sem eles o servidor usa valores padrão). As faixas válidas são conferidas no servidor.
 function coletar() {
   const v = id => $(id).value.trim();
   const p = { idade: v("idade"), sexo, peso: v("peso"), altura: v("altura"), pas: v("pas"), pad: v("pad"), pam: v("pam"), fc: v("fc") };
@@ -498,6 +600,8 @@ function coletar() {
                                      modelo_pk: v("modelo") } };
 }
 
+// post(url, corpo): envia o corpo em JSON ao servidor (método POST, via fetch) e devolve a resposta já convertida em objeto.
+// Se o servidor responder com erro (por exemplo, "Idade fora da faixa do modelo"), a mensagem vira um erro do JavaScript.
 async function post(url, corpo) {
   const r = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(corpo) });
   const j = await r.json().catch(() => ({ erro: "Resposta inválida do servidor." }));
@@ -506,9 +610,17 @@ async function post(url, corpo) {
 }
 
 // ---------------------------------------------------------------- simulação
+// ultimo: última resposta de /api/simular; doses: última resposta de /api/doses;
+// pedido: contador do pedido mais recente (se o usuário clicar de novo, respostas antigas são ignoradas).
 let ultimo = null, doses = null, pedido = 0;
+// Enviar o formulário (botão Simular ou tecla Enter) chama simular() em vez de recarregar a página (preventDefault).
 $("form").onsubmit = e => { e.preventDefault(); simular(); };
 
+// simular(): o fluxo principal, em duas etapas.
+// 1) Pede /api/simular: o servidor calibra o paciente virtual e devolve as curvas (batimentos, sinais) e as métricas.
+//    Enquanto espera, o botão fica desativado com a rodinha; quando a resposta chega, a tela inicial dá lugar aos resultados.
+// 2) Em seguida pede /api/doses (11 doses, demora mais) e preenche o cartão 06 quando chegar.
+// if (meu !== pedido) return descarta a resposta de um pedido que já foi substituído por outro mais novo.
 async function simular() {
   const meu = ++pedido;
   $("err").style.display = "none";
@@ -528,30 +640,42 @@ async function simular() {
   if (meu !== pedido || !ultimo) return;
   try { const d = await post("/api/doses", corpo); if (meu === pedido) { doses = d; renderDoses(); } } catch (e) {}
 }
+// mostraErro(m): mostra a mensagem na caixa vermelha abaixo do botão Simular.
 function mostraErro(m) { $("err").textContent = m; $("err").style.display = "block"; }
 
 // ---------------------------------------------------------------- gráfico SVG
+// Os gráficos são desenhados à mão em SVG, sem biblioteca externa. As peças são:
+// ticks(a, b, n): escolhe valores redondos (1, 2, 2,5 ou 5 × uma potência de 10) para as marcas do eixo, cerca de n entre a e b.
 function ticks(a, b, n) {
   const span = b - a || 1, step0 = span / n, mag = Math.pow(10, Math.floor(Math.log10(step0)));
   const step = [1, 2, 2.5, 5, 10].map(m => m * mag).find(s => span / s <= n) || 10 * mag;
   const out = []; for (let v = Math.ceil(a / step) * step; v <= b + 1e-9; v += step) out.push(+v.toFixed(10));
   return out;
 }
+// nearest(xs, x): acha, por busca binária, o índice do ponto de xs mais próximo de x (usado no tooltip).
 function nearest(xs, x) {
   let lo = 0, hi = xs.length - 1;
   while (hi - lo > 1) { const m = (lo + hi) >> 1; if (xs[m] < x) lo = m; else hi = m; }
   return Math.abs(xs[lo] - x) <= Math.abs(xs[hi] - x) ? lo : hi;
 }
+// el(tag, atributos, pai): cria um elemento SVG (linha, texto, círculo...), aplica os atributos e o coloca dentro do pai.
 const NS = "http://www.w3.org/2000/svg";
 function el(tag, attrs, parent) {
   const e = document.createElementNS(NS, tag);
   for (const k in attrs) e.setAttribute(k, attrs[k]);
   if (parent) parent.appendChild(e); return e;
 }
+// chart(caixa, cfg): desenha um gráfico de linhas completo dentro da caixa. Opções de cfg:
+//   series: curvas {x, y, color, label, unit}; bands: faixa sombreada entre lo e hi (ex.: PAS em cima, PAD embaixo);
+//   hlines: linhas horizontais de limiar (65 e 55 mmHg); vlines: linhas verticais (início do bolus);
+//   hbands / vbands: faixas horizontais ou verticais (alvo do BIS 40-60, faixa de dose sugerida);
+//   points: pontos destacados com rótulo (PAM mínima); xMin, xMax, yMin, yMax: limites dos eixos; onclick: ação ao clicar.
 function chart(box, cfg) {
+  // Limpa a caixa e define largura (a da tela, no mínimo 280 px), altura e margens (m) para caber os rótulos dos eixos.
   box.innerHTML = "";
   const W = Math.max(box.clientWidth, 280), H = cfg.h || 220, m = { l: 42, r: 14, t: cfg.yLabel ? 22 : 12, b: 30 };
   const svg = el("svg", { viewBox: `0 0 ${W} ${H}`, height: H, role: "img", "aria-label": cfg.aria || "" }, box);
+  // Junta todos os valores de y para achar o mínimo e o máximo, com 6% de folga acima e abaixo (salvo limites fixos em cfg).
   const all = [];
   (cfg.series || []).forEach(s => s.y.forEach(v => v != null && all.push(v)));
   (cfg.bands || []).forEach(b => { b.lo.forEach(v => v != null && all.push(v)); b.hi.forEach(v => v != null && all.push(v)); });
@@ -559,9 +683,12 @@ function chart(box, cfg) {
   let y0 = cfg.yMin ?? Math.min(...all), y1 = cfg.yMax ?? Math.max(...all);
   if (cfg.yMin == null) y0 -= (y1 - y0) * 0.06; if (cfg.yMax == null) y1 += (y1 - y0) * 0.06;
   if (cfg.zero) y0 = Math.min(0, y0);
+  // Escalas: X(v) e Y(v) convertem um valor (minutos, mmHg) em posição em pixels dentro do desenho.
+  // No SVG o eixo y cresce para baixo, por isso Y parte da base (H - m.b) e sobe conforme o valor aumenta.
   const xs0 = cfg.xMin, xs1 = cfg.xMax;
   const X = v => m.l + (v - xs0) / (xs1 - xs0) * (W - m.l - m.r);
   const Y = v => H - m.b - (v - y0) / (y1 - y0) * (H - m.t - m.b);
+  // Eixos: linhas de grade horizontais com os valores à esquerda, marcas de tempo embaixo, linha do eixo x e unidade do eixo y.
   const g = el("g", {}, svg);
   for (const v of ticks(y0, y1, 5)) {
     el("line", { x1: m.l, x2: W - m.r, y1: Y(v), y2: Y(v), stroke: css("--grid"), "stroke-width": 1 }, g);
@@ -572,35 +699,43 @@ function chart(box, cfg) {
   }
   el("line", { x1: m.l, x2: W - m.r, y1: H - m.b, y2: H - m.b, stroke: css("--axis") }, g);
   if (cfg.yLabel) el("text", { x: m.l - 6, y: 10, "text-anchor": "end", "font-size": 11, fill: css("--muted") }, g).textContent = cfg.yLabel;
+  // Linhas verticais tracejadas (ex.: início do bolus) com rótulo opcional, e o título do eixo x.
   (cfg.vlines || []).forEach(v => {
     el("line", { x1: X(v.x), x2: X(v.x), y1: m.t, y2: H - m.b, stroke: css("--axis"), "stroke-width": 1, "stroke-dasharray": "2 3" }, g);
     if (v.label) el("text", { x: X(v.x) + 5, y: m.t + 10, "font-size": 11, fill: css("--muted") }, g).textContent = v.label;
   });
   if (cfg.xLabel) el("text", { x: W - m.r, y: H - 2, "text-anchor": "end", "font-size": 11, fill: css("--ink-2") }, g).textContent = cfg.xLabel;
+  // Faixas retangulares: verticais (vbands, ex.: faixa de dose sugerida) e horizontais (hbands, ex.: BIS de 40 a 60).
   (cfg.vbands || []).forEach(v => {
     el("rect", { x: X(v.x0), y: m.t, width: Math.max(X(v.x1) - X(v.x0), 0), height: H - m.t - m.b, fill: v.color, opacity: v.op || .12 }, g);
   });
   (cfg.hbands || []).forEach(v => {
     el("rect", { x: m.l, y: Y(v.y1), width: W - m.l - m.r, height: Y(v.y0) - Y(v.y1), fill: v.color, opacity: v.op || .12 }, g);
   });
+  // Faixa entre duas curvas (bands): percorre a curva de cima (PAS) e volta pela de baixo (PAD), formando uma área fechada.
   (cfg.bands || []).forEach(b => {
     let d = "", d2 = "";
     b.x.forEach((x, i) => { if (b.hi[i] != null) d += (d ? "L" : "M") + X(x) + "," + Y(b.hi[i]); });
     for (let i = b.x.length - 1; i >= 0; i--) if (b.lo[i] != null) d2 += "L" + X(b.x[i]) + "," + Y(b.lo[i]);
     el("path", { d: d + d2 + "Z", fill: b.color, stroke: "none" }, g);
   });
+  // Linhas de limiar tracejadas (65 e 55 mmHg), com o valor escrito à direita.
   (cfg.hlines || []).forEach(h => {
     el("line", { x1: m.l, x2: W - m.r, y1: Y(h.y), y2: Y(h.y), stroke: h.color, "stroke-width": 1.4, "stroke-dasharray": "5 4" }, g);
     if (h.label) el("text", { x: W - m.r - 2, y: Y(h.y) - 4, "text-anchor": "end", "font-size": 11, fill: css("--ink-2") }, g).textContent = h.label;
   });
+  // Recorte (clipPath): impede que as curvas saiam da área do gráfico.
   const clip = "c" + Math.random().toString(36).slice(2);
   el("rect", { x: m.l, y: m.t - 4, width: W - m.l - m.r, height: H - m.t - m.b + 8 }, el("clipPath", { id: clip }, svg));
+  // Curvas: cada série vira um caminho SVG (M começa, L liga ao ponto seguinte); valores nulos interrompem a linha.
+  // Séries de cor transparent não aparecem, mas entram no tooltip (é o caso da PAS e da PAD). marks desenha um círculo em cada ponto.
   (cfg.series || []).forEach(s => {
     let d = ""; s.x.forEach((x, i) => { if (s.y[i] != null) d += (d && s.y[i - 1] != null ? "L" : "M") + X(x).toFixed(1) + "," + Y(s.y[i]).toFixed(1); });
     el("path", { d, fill: "none", stroke: s.color, "stroke-width": s.w || 2, "stroke-linejoin": "round", "stroke-linecap": "round", "clip-path": `url(#${clip})`,
       ...(s.dash ? { "stroke-dasharray": s.dash } : {}) }, g);
     if (s.marks) s.x.forEach((x, i) => el("circle", { cx: X(x), cy: Y(s.y[i]), r: 4, fill: s.color, stroke: css("--surface"), "stroke-width": 2 }, g));
   });
+  // Pontos destacados com rótulo (ex.: PAM mínima); perto da borda direita o rótulo passa para o outro lado para não ser cortado.
   (cfg.points || []).forEach(p => {
     el("circle", { cx: X(p.x), cy: Y(p.y), r: p.r || 5.5, fill: p.color, stroke: css("--surface"), "stroke-width": 2.5 }, g);
     if (p.label) {
@@ -611,6 +746,9 @@ function chart(box, cfg) {
     }
   });
   // hover: linha vertical + pontos + caixa com os valores
+  // Tooltip: um retângulo invisível (hit) cobre o gráfico e acompanha o mouse. A cada movimento, converte a posição do mouse
+  // em tempo, acha o ponto mais próximo de cada série, move a linha vertical e os pontos e escreve os valores no quadro (tip).
+  // O quadro muda de lado perto da borda direita. Quando o mouse sai do gráfico, tudo é escondido.
   const cross = el("line", { y1: m.t, y2: H - m.b, stroke: css("--axis"), "stroke-width": 1, visibility: "hidden" }, svg);
   const dots = (cfg.series || []).map(s => el("circle", { r: s.color === "transparent" ? 0 : 4, fill: s.color, stroke: css("--surface"), "stroke-width": 2, visibility: "hidden" }, svg));
   const tip = document.createElement("div"); tip.className = "tip"; box.appendChild(tip);
@@ -638,23 +776,29 @@ function chart(box, cfg) {
     tip.style.top = "8px";
   });
   hit.addEventListener("mouseleave", () => { tip.style.display = "none"; cross.setAttribute("visibility", "hidden"); dots.forEach(d => d.setAttribute("visibility", "hidden")); });
+  // Se houver onclick (gráfico de doses), o clique converte a posição do mouse em dose e chama a ação.
   if (cfg.onclick) { hit.style.cursor = "pointer"; hit.addEventListener("click", ev => {
     const r = svg.getBoundingClientRect(), px = (ev.clientX - r.left) * W / r.width;
     cfg.onclick(xs0 + (px - m.l) / (W - m.l - m.r) * (xs1 - xs0)); }); }
 }
+// legenda(caixa, itens): escreve a legenda com a amostra de cor (linha, caixa ou tracejado) e o texto de cada item.
 function legenda(box, itens) {
   box.innerHTML = itens.map(i => `<span><span class="sw ${i.tipo || ""}" style="background:${i.cor};color:${i.cor}"></span>${i.txt}</span>`).join("");
 }
 
 // ---------------------------------------------------------------- renderização
+// Ícones do cartão de risco (desenhos SVG em texto): visto para BAIXO, ponto de exclamação para MODERADO e ALTO.
 const ICONES = {
   BAIXO: '<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"/></svg>',
   MODERADO: '<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"><path d="M12 6v8M12 18h.01"/></svg>',
   ALTO: '<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"><path d="M12 6v8M12 18h.01"/></svg>',
 };
+// minTip: texto do tempo no tooltip, por exemplo "2,0 min após o bolus".
 const minTip = x => `${fmt(x, 1)} min após o bolus`;
 
 // régua da PAM: faixas < 55, 55–65 e ≥ 65 mmHg com a PAM basal e a mínima prevista
+// A escala vai de 40 mmHg até um pouco acima da PAM basal. A PAM basal é o círculo vazado e a mínima prevista o círculo cheio,
+// ligados por um traço que mostra o tamanho da queda. Os rótulos trocam de lado se não couberem na largura.
 function meter(box, mt) {
   box.innerHTML = "";
   const W = Math.max(box.clientWidth, 280), H = 74, m = { l: 8, r: 8 };
@@ -666,16 +810,20 @@ function meter(box, mt) {
   const clip = "m" + Math.random().toString(36).slice(2);
   el("rect", { x: m.l, y: yb, width: W - m.l - m.r, height: hb, rx: hb / 2 }, el("clipPath", { id: clip }, svg));
   const gz = el("g", { "clip-path": `url(#${clip})` }, svg);
+  // Três faixas coloridas (vermelho abaixo de 55, laranja de 55 a 65, verde a partir de 65) e as divisões em 55 e 65.
   [[lo, 55, "--crit"], [55, 65, "--serious"], [65, hi, "--good"]].forEach(([a, b, c]) =>
     el("rect", { x: X(a), y: yb, width: X(b) - X(a), height: hb, fill: css(c), opacity: .28 }, gz));
   [55, 65].forEach(v => el("line", { x1: X(v), x2: X(v), y1: yb, y2: yb + hb, stroke: css("--surface"), "stroke-width": 2 }, gz));
+  // Números da escala a cada 10 mmHg e o nome do eixo.
   for (let v = lo; v <= hi; v += 10) {
     el("text", { x: X(v), y: yb + hb + 16, "text-anchor": "middle", "font-size": 11, fill: css("--muted") }, svg).textContent = v;
   }
   el("text", { x: X(hi), y: yb + hb + 30, "text-anchor": "end", "font-size": 11, fill: css("--muted") }, svg).textContent = "PAM (mmHg)";
+  // Traço da queda e os dois círculos (basal e mínima).
   el("line", { x1: X(mt.pam_nadir), x2: X(mt.pam_basal), y1: yb + hb / 2, y2: yb + hb / 2, stroke: css("--ink"), "stroke-width": 2, opacity: .55 }, svg);
   el("circle", { cx: X(mt.pam_basal), cy: yb + hb / 2, r: 6, fill: css("--surface"), stroke: css("--ink"), "stroke-width": 2 }, svg);
   el("circle", { cx: X(mt.pam_nadir), cy: yb + hb / 2, r: 7, fill: css("--ink"), stroke: css("--surface"), "stroke-width": 2.5 }, svg);
+  // lab: escreve um rótulo no topo e o empurra para dentro se ele passar da borda.
   const lab = (x, txt, anchor) => {
     const t = el("text", { x, y: 12, "text-anchor": anchor, "font-size": 12, fill: css("--ink-2") }, svg);
     t.innerHTML = txt;
@@ -687,10 +835,14 @@ function meter(box, mt) {
   lab(X(mt.pam_basal) - 6, `basal <tspan font-weight="600" fill="${css("--ink")}">${fmt(mt.pam_basal)}</tspan>`, "start");
 }
 
+// renderTudo(): preenche toda a área de resultados com a última resposta do servidor (ultimo). Também é chamada ao trocar
+// o tema e ao redimensionar a janela, para redesenhar os gráficos com as cores e a largura novas.
+// Nomes curtos: mt = métricas, b = batimentos (PA, FC, DC a cada batimento), s = sinais (BIS, Cp, Ce a cada 5 s), v = paciente virtual.
 function renderTudo() {
   const r = ultimo, mt = r.metricas, b = r.batimentos, s = r.sinais, v = r.virtual;
   const xmax = Math.max(...b.t);
   // risco
+  // A classe BAIXO/MODERADO/ALTO pinta o cartão (ver .risk no CSS); a frase resume a dose, a queda e o tempo até a PAM mínima.
   $("risk").className = "risk " + mt.risco;
   $("riskIc").innerHTML = ICONES[mt.risco];
   $("riskLvl").textContent = mt.risco[0] + mt.risco.slice(1).toLowerCase();
@@ -701,6 +853,7 @@ function renderTudo() {
       ? "A PAM mínima prevista fica entre 55 e 65 mmHg." : "A PAM mínima prevista fica em 65 mmHg ou mais."}</small>`;
   meter($("meter"), mt);
   // blocos
+  // Os cinco blocos de números (tiles) logo abaixo do cartão de risco.
   $("tNadir").innerHTML = `${fmt(mt.pam_basal)} → ${fmt(mt.pam_nadir)} <small>mmHg</small>`;
   $("tNadirS").textContent = `em ${fmt(mt.t_nadir, 1)} min · PA mínima ${fmt(mt.pas_nadir)}/${fmt(mt.pad_nadir)}`;
   $("t65").innerHTML = `${fmt(mt.min_abaixo_65, 1)} <small>min</small>`;
@@ -712,6 +865,8 @@ function renderTudo() {
   $("tBisS").textContent = `BIS mínimo ${fmt(mt.bis_min)} · ${fmt(mt.tempo_hipnose, 1)} min abaixo de 60`;
 
   // PA
+  // Cores das séries lidas do CSS (mudam com o tema). Gráfico 01: PAM (linha azul), faixa PAS-PAD (cinza), limiares de 65 e 55 mmHg,
+  // linha do bolus no tempo 0 e ponto da PAM mínima. PAS e PAD entram como séries invisíveis só para aparecerem no tooltip.
   const S1 = css("--s1"), S2 = css("--s2"), S3 = css("--s3"), S4 = css("--s4");
   const bands = [{ x: b.t, lo: b.pad, hi: b.pas, color: css("--band-pa") }];
   const leg = [{ cor: S1, txt: "PAM prevista" }, { cor: css("--band-pa"), tipo: "box", txt: "PAS–PAD" }];
@@ -725,16 +880,19 @@ function renderTudo() {
     hlines: [{ y: 65, color: css("--serious"), label: "65" }, { y: 55, color: css("--crit"), label: "55" }],
     vlines: [{ x: 0, label: "bolus" }], yLabel: "mmHg",
     points: [{ x: mt.t_nadir, y: mt.pam_nadir, color: S1, label: `mínima ${fmt(mt.pam_nadir)} mmHg · ${fmt(mt.t_nadir, 1)} min`, dy: 26 }] });
+  // Gráficos 02 a 05: FC, DC (eixo a partir de zero), BIS (faixa-alvo 40-60 sombreada) e concentrações Cp e Ce.
   chart($("chFC"), { xMin: b.t[0], xMax: xmax, xTip: minTip, vlines: [{ x: 0 }], series: [{ x: b.t, y: b.fc, color: S1, label: "FC", unit: "bpm" }] });
   chart($("chDC"), { xMin: b.t[0], xMax: xmax, xTip: minTip, zero: true, yDec: 1, vlines: [{ x: 0 }], series: [{ x: b.t, y: b.dc, color: S1, label: "DC", unit: "L/min", dec: 2 }] });
   chart($("chBIS"), { xMin: s.t[0], xMax: xmax, xTip: minTip, yMin: 0, yMax: 100, vlines: [{ x: 0 }], hbands: [{ y0: 40, y1: 60, color: css("--muted"), op: .14 }],
     series: [{ x: s.t, y: s.bis, color: S1, label: "BIS" }] });
+  // O eixo das concentrações vai até 6 µg/ml ou 1,4 × o maior Ce; o pico de Cp logo após o bolus é cortado nesse teto.
   const ceMax = Math.max(6, 1.4 * Math.max(...s.ce));
   legenda($("legCE"), [{ cor: S1, txt: "plasma (Cp)" }, { cor: S2, txt: "sítio efetor (Ce)" }]);
   chart($("chCE"), { xMin: s.t[0], xMax: xmax, xTip: minTip, yMin: 0, yMax: ceMax, yDec: 0, vlines: [{ x: 0 }],
     series: [{ x: s.t, y: s.cp.map(c => Math.min(c, ceMax)), color: S1, label: "Cp", unit: "µg/ml", dec: 1 },
              { x: s.t, y: s.ce, color: S2, label: "Ce", unit: "µg/ml", dec: 1 }] });
   // mecanismos
+  // Cartão 07: variação (%) de Rp, VS e FC no momento da PAM mínima, em três cartões, e o gráfico dessas variações no tempo.
   $("mech").innerHTML = [
     ["Vasodilatação", "resistência periférica (Rp)", mt.rp_nadir_pct, S1],
     ["Depressão miocárdica / pré-carga", "volume sistólico", mt.vs_nadir_pct, S2],
@@ -747,6 +905,7 @@ function renderTudo() {
              { x: b.t, y: b.vs, color: S2, label: "volume sistólico", unit: "%" },
              { x: b.t, y: b.fcp, color: S3, label: "FC", unit: "%" }] });
   // paciente virtual
+  // Cartão 08: lista de pares [nome, valor] transformada em linhas da lista de parâmetros. Se a tabela de doses já chegou, ela é redesenhada também.
   const P = [["PA do modelo", `${fmt(v.pas)}/${fmt(v.pad)} (PAM ${fmt(v.pam)}) mmHg`],
     ["Débito cardíaco", `${fmt(v.dc, 2)} L/min${v.dc_estimado ? " (estimado)" : ""}`],
     ["Volume sistólico", `${fmt(v.vs)} ml`],
@@ -766,6 +925,8 @@ function renderTudo() {
   if (doses) renderDoses();
 }
 
+// renderDoses(): preenche o cartão 06 com a resposta de /api/doses.
+// Faixa de dose: a menor dose que leva o BIS abaixo de 60 e a maior que mantém a PAM mínima em 65 mmHg ou mais (calculadas no servidor).
 function renderDoses() {
   const d = doses, j = d.janela, atual = +ultimo.corpo.protocolo.dose_mgkg;
   $("dosesLoad").classList.add("hidden"); $("dosesOk").classList.remove("hidden");
@@ -775,6 +936,8 @@ function renderDoses() {
        a menor dose leva o BIS abaixo de 60; a maior mantém a PAM mínima ≥ 65 mmHg.`
     : `<b>Nenhuma dose desta faixa produz hipnose mantendo a PAM ≥ 65 mmHg</b> com este tempo de injeção.
        Considere titular a dose, coindução, otimização volêmica ou vasopressor.`;
+  // Gráfico da PAM mínima prevista para cada dose, com a faixa sugerida em verde e um ponto na dose atual.
+  // Clicar no gráfico arredonda para o múltiplo de 0,25 mg/kg mais próximo, coloca a dose no formulário e simula.
   const x = d.doses.map(o => o.dose), S1 = css("--s1");
   legenda($("legDose"), [{ cor: S1, txt: "PAM mínima prevista" }, { cor: css("--good"), tipo: "box", txt: "faixa sugerida" },
     { cor: css("--serious"), tipo: "dash", txt: "65 mmHg" }, { cor: css("--crit"), tipo: "dash", txt: "55 mmHg" }]);
@@ -785,6 +948,7 @@ function renderDoses() {
     points: atual >= x[0] && atual <= x[x.length - 1] ? [{ x: atual, y: ultimo.metricas.pam_nadir, color: css("--ink"), r: 6, label: "dose atual", dy: -12 }] : [],
     yLabel: "mmHg",
     hlines: [{ y: 65, color: css("--serious"), label: "65" }, { y: 55, color: css("--crit"), label: "55" }] });
+  // Tabela: uma linha por dose, com a dose atual destacada (classe sel). Clicar numa linha simula aquela dose e volta ao topo da página.
   const tb = $("tabDoses").querySelector("tbody");
   tb.innerHTML = d.doses.map(o => `<tr data-d="${o.dose}" class="${Math.abs(o.dose - atual) < 1e-6 ? "sel" : ""}">
     <td>${fmt(o.dose, 2)} mg/kg</td><td>${fmt(o.mg)} mg</td><td>${fmt(o.pam_nadir)} mmHg</td><td>${fmt(o.queda_pct)}%</td>
@@ -795,7 +959,10 @@ function renderDoses() {
 }
 
 // ---------------------------------------------------------------- ações
+// Botão Imprimir: abre a janela de impressão do navegador (que também salva em PDF); o CSS de impressão esconde o formulário.
 $("print").onclick = () => window.print();
+// Botão CSV: monta um texto com uma linha por batimento (tempo, PAS, PAD, PAM, FC, DC), separado por ponto e vírgula e com vírgula decimal,
+// para abrir direto no Excel em português; depois cria um link temporário e o clica para baixar o arquivo curva_prevista.csv.
 $("csv").onclick = () => {
   const b = ultimo.batimentos;
   let txt = "t_min;PAS;PAD;PAM;FC;DC\n";
@@ -804,8 +971,10 @@ $("csv").onclick = () => {
   a.href = URL.createObjectURL(new Blob([txt], { type: "text/csv" })); a.download = "curva_prevista.csv"; a.click();
 };
 // ?exemplo=0|1|2 abre já simulando um exemplo (demonstrações)
+// Por exemplo, http://localhost:8080/?exemplo=2 abre a página já simulando o paciente de 81 anos.
 const ex = new URLSearchParams(location.search).get("exemplo");
 if (ex !== null && EXEMPLOS[+ex]) document.querySelector(`[data-ex="${+ex}"]`).click();
+// Ao redimensionar a janela, espera 150 ms sem novas mudanças e só então redesenha os gráficos na nova largura.
 let rt; window.addEventListener("resize", () => { clearTimeout(rt); rt = setTimeout(() => ultimo && renderTudo(), 150); });
 </script>
 </body>
