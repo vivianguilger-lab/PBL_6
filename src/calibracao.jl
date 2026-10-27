@@ -12,8 +12,6 @@
 #   PP  = PAS − PAD  ↓  quando C ↑              → C (bisseção em log C)
 # =============================================================================
 #
-# GUIA DE LEITURA (comentários acrescentados para o grupo; o código não mudou)
-# -----------------------------------------------------------------------------
 # Este arquivo cria o "paciente virtual" (o Windkessel ajustado aos dados que o
 # monitor mostra antes da indução) e simula a indução nesse paciente.
 #   1. Rp = PAM/DC garante que o modelo reproduz a PAM medida.
@@ -27,8 +25,9 @@
 
 # Faixa de busca da complacência C, em ml/mmHg (Stergiopulos: 1,22). A faixa
 # 0,2–6 é SUPOSIÇÃO nossa, sem fonte (docs/validacao.md, seção 6).
-# `const A, B = x, y` cria duas constantes de uma vez.
-const C_MIN, C_MAX = 0.2, 6.0   # ml/mmHg
+
+const C_MIN, C_MAX = 0.2, 6.0   # ml/mmHg 
+#VALORES ASSUMIDOS, DEVEM SER MUDADOS PARA VALORES VERIFICADOS!
 
 # -----------------------------------------------------------------------------
 # Estrutura PacienteVirtual: tudo o que define o paciente simulado
@@ -57,7 +56,7 @@ end
 # τ (tau) = Rp·C, em s: constante de tempo da queda exponencial da pressão na
 # diástole. Ex.: Rp 1,1 mmHg·s/ml × C 1,2 ml/mmHg ≈ 1,3 s. θ[1] = Rp, θ[2] = C.
 "Constante de tempo diastólica τ = Rp·C [s]."
-tau_diastolico(pv::PacienteVirtual) = pv.θ[1] * pv.θ[2]
+tau_diastolico(pv::PacienteVirtual) = pv.θ[1] * pv.θ[2] # exemplo ilustrativo
 
 # Pressão de pulso (mmHg) do batimento basal periódico para um θ, FC (bpm) e VS
 # (ml). Devolve a PP (máximo − mínimo da pressão) e a curva de pressão inteira.
@@ -102,11 +101,14 @@ function calibrar(p::Paciente; modelo_pk = :schnider, efeito = EfeitoHemodinamic
         # Primeiro confere se a resposta está dentro da faixa [C_MIN, C_MAX].
         # Se não estiver, usa o extremo mais próximo e marca convergiu = false
         # (o paciente virtual avisa que a pressão de pulso não foi atingida).
-        if ppC(C_MAX) > alvo.PP          # pulso pequeno demais até para a maior complacência
+        # se nenhum C entre 0,2 e 6 consegue reproduzir o PP do paciente, o programa simplesmente coloca C no limite mais próximo   VERIFICAR!
+        if ppC(C_MAX) > alvo.PP          # pulso pequeno demais até para a maior complacência 
             θ[2] = C_MAX; convergiu = false
         elseif ppC(C_MIN) < alvo.PP      # pulso grande demais até para a menor complacência
             θ[2] = C_MIN; convergiu = false
         else
+    # novamente, o mín e o máx são hipóteses que devem, idealmente, serem trocadas por valores justificados   VERIFICAR!
+            
             # Bisseção: começa no intervalo [log C_MIN, log C_MAX] e, a cada volta,
             # testa o ponto do meio c. Se a PP ali ainda é maior que a medida, C
             # precisa ser maior (a = c); senão, menor (b = c).
@@ -190,7 +192,7 @@ end
 # minuto 1, bolus de 2 mg/kg injetado em 30 s; a partir de 1 min após o bolus,
 # manutenção de 100 µg/kg/min até o fim; total de 1 + 20 = 21 min (a janela de
 # 20 min após o bolus é a da hipotensão pós-indução). Dose e manutenção padrão
-# seguem o esquema do grupo e a bula do Diprivan (docs/validacao.md).
+# seguem o esquema do grupo e a bula do Diprivan (docs/validacao.md).                    VERIFICAR ESSA ORIGEM!
 # Entradas: o paciente virtual e o protocolo; `pk`, `efeito` e `s` podem ser
 # trocados (usado nas análises de sensibilidade e incerteza).
 # Saída: um Resultado.
@@ -203,9 +205,18 @@ Bolus de `dose_mgkg` injetado em `duracao_bolus` **segundos** no minuto
 `t_inducao` (o minuto anterior é a linha de base), seguido de manutenção a partir
 de `inicio_manutencao` min após o bolus (esquema do grupo). Simula `duracao` min.
 """
-function simular_inducao(pv::PacienteVirtual; dose_mgkg = 2.0, duracao_bolus = 30.0, manutencao_ugkgmin = 100.0,
-                         inicio_manutencao = 1.0, t_inducao = 1.0, duracao = 20.0, forma_de_onda = false,
-                         pk = pv.pk, efeito = pv.efeito, s = pv.s)
+function simular_inducao(pv::PacienteVirtual;             # todos esses valores vem de fontes citadas nos documentos de validação, presentes na file docs
+                        dose_mgkg = 2.0,                  # VERIFICAR CADA UM E MUDAR SE NECESSÁRIO!
+                        duracao_bolus = 30.0, 
+                        manutencao_ugkgmin = 100.0,
+                        inicio_manutencao = 1.0, 
+                        t_inducao = 1.0, 
+                        duracao = 20.0, 
+                        forma_de_onda = false,
+                        pk = pv.pk, 
+                        efeito = pv.efeito, 
+                        s = pv.s)
+    
     p = pv.paciente
     # Tempo final (min) = linha de base + duração da janela.
     tfim = t_inducao + duracao
