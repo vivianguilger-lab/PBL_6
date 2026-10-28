@@ -48,48 +48,31 @@ Uso no modelo:
   estrutura do PropofolPBL do grupo.
 """
 Base.@kwdef struct Paciente
-    # `campo::Tipo` diz o tipo do dado: String = texto, Float64 = número real,
-    # Int = número inteiro, Symbol = rótulo curto escrito com dois-pontos (:F).
-    # nome: texto livre, só para identificar o paciente nos relatórios.
+    # nome: texto livre, só para identificar o paciente nos relatórios. OK
     nome::String = "Paciente"
     # idade [anos], peso [kg] e altura [cm]: covariáveis da PK (Schnider, Marsh,
-    # Eleveld) e do BIS de Eleveld (propofol.jl).
-    idade::Float64
-    peso::Float64
+    # Eleveld) e do BIS de Eleveld (propofol.jl). OK
+    idade::Float64 #OK
+    peso::Float64 #OK
     altura::Float64
-    # sexo: :M (masculino) ou :F (feminino, padrão). Muda a massa magra de
-    # James, a massa livre de gordura e o clearance de Eleveld.
-    # asa: estado físico ASA (1 a 5); entra no fator de sensibilidade
-    # hemodinâmica ao propofol (acoplamento.jl).
     sexo::Symbol = :F
+    # se você fornece o sexo do paciente, tudo certo. Mas se deixar o default, o programa silenciosamente assume que o paciente é feminino VERIFICAR!
     asa::Int = 1
     # pas, pad [mmHg]: pressões sistólica e diastólica pré-indução; calibram a
     # complacência arterial C do Windkessel (paciente virtual, calibracao.jl).
     # fc [bpm]: frequência cardíaca basal.
-    pas::Float64
-    pad::Float64
-    fc::Float64
-    # pam [mmHg]: PAM lida no monitor (obrigatória); base da resistência
-    # periférica Rp = PAM / DC.
-    # dc [L/min]: débito cardíaco medido. `Union{Nothing,Float64}` quer dizer
-    # "nada OU um número"; o padrão `nothing` significa "não medido", e então o
-    # DC é estimado pela superfície corporal (função debito_basal, abaixo).
-    pam::Float64
+    # Paciente sem ASA informado -> ASA 1 -> modelo interpreta paciente como saudável VERIFICAR!
+    pas::Float64 # OK 
+    pad::Float64 # OK
+    fc::Float64 # OK
+    pam::Float64 # dá pra calcular a partir dos outros dados também (PAM = PAD + (PAS-PAD/3)) VERIFICAR!
     dc::Union{Nothing,Float64} = nothing
-    # spo2 [%] e glicemia (padrão 95, valor típico em mg/dL): NÃO entram no
-    # modelo; existem só para manter a estrutura do PropofolPBL do grupo.
-    # pvi [%]: variabilidade da onda pletismográfica; ivci [%]: colapsabilidade
-    # da veia cava inferior. Valores altos sugerem hipovolemia e aumentam a
-    # sensibilidade ao propofol (limiares PVI > 15 e IVCI >= 43%, coeficientes
-    # ilustrativos; ver acoplamento.jl e docs/validacao.md, seção 4.4).
+    # o modelo permite que seja o DC medido ou (se não ouver valor medido) 3.0 * superficie_corporal(p), ou seja, DC = 3,0 \times SC VERIFICAR!
     spo2::Float64 = 98.0
     glicemia::Float64 = 95.0
-    pvi::Float64 = 10.0          # pleth variability index
-    ivci::Float64 = 20.0         # índice de colapsabilidade da veia cava inferior
-    # Construtor interno: roda toda vez que um Paciente é criado e confere se os
-    # dados fazem sentido. A forma `condição || throw(...)` quer dizer "se a
-    # condição for falsa, pare com esta mensagem de erro". `x in (a, b)` testa
-    # se x é a ou b. `new(...)` cria de fato o objeto quando tudo está certo.
+    pvi::Float64 = 10.0          # pleth variability index   VALOR ILUSTRATIVO -> ACHAR ALGO PARA MUDAR!!
+    ivci::Float64 = 20.0         # índice de colapsabilidade da veia cava inferior   VALOR ILUSTRATIVO -> ACHAR ALGO PARA MUDAR!!
+   
     function Paciente(nome, idade, peso, altura, sexo, asa, pas, pad, fc, pam, dc, spo2, glicemia, pvi, ivci)
         sexo in (:M, :F) || throw(ArgumentError("sexo deve ser :M ou :F"))
         pas > pad || throw(ArgumentError("PAS deve ser maior que PAD"))
@@ -105,8 +88,7 @@ end
 # (modelo de Eleveld, propofol.jl).
 # Sintaxe: `f(x) = expressão` define uma função curta em uma linha; `p.peso` lê
 # o campo `peso` do paciente `p`; `p::Paciente` exige que `p` seja um Paciente;
-# `^` é potência.
-imc(p::Paciente) = p.peso / (p.altura / 100)^2
+imc(p::Paciente) = p.peso / (p.altura / 100)^2 # OK
 
 # Massa magra (lean body mass, LBM) [kg] pela fórmula de James (1976):
 #   homem:  1,1·peso − 128·(peso/altura)²
@@ -117,7 +99,7 @@ imc(p::Paciente) = p.peso / (p.altura / 100)^2
 # positivo e a massa magra calculada passa a CAIR com o ganho de peso (ex.:
 # mulher de 160 cm acima de ~92 kg), o que não tem sentido fisiológico.
 # Sintaxe: `condição ? a : b` vale `a` se a condição for verdadeira, senão `b`.
-"Massa magra (fórmula de James), usada por Schnider. Perde validade para IMC muito alto."
+"Massa magra (fórmula de James), usada por Schnider. Perde validade para IMC muito alto." # fórmula publicada (James 1976, usada por Schnider 1998) 
 function massa_magra(p::Paciente)
     # r = peso / altura [kg/cm]; entra ao quadrado na fórmula.
     r = p.peso / p.altura
@@ -130,14 +112,14 @@ end
 # (função debito_basal, abaixo). `sqrt` = raiz quadrada.
 # Ex.: 160 cm e 72 kg -> SC ≈ 1,79 m².
 "Superfície corporal [m²] (Mosteller)."
-superficie_corporal(p::Paciente) = sqrt(p.altura * p.peso / 3600)
+superficie_corporal(p::Paciente) = sqrt(p.altura * p.peso / 3600) # dado derivado: altura real -> peso real -> Mosteller -> SC derivada     OK
 
 # PAM basal [mmHg]: é o próprio valor do monitor (não é calculada como
 # PAD + (PAS − PAD)/3), porque os monitores oscilométricos medem a PAM
 # diretamente. É a PAM de partida do Windkessel: a resistência periférica
 # basal sai de Rp = PAM / DC (docs/modelo_matematico.md, seção 2).
 "PAM basal [mmHg], medida no monitor."
-pam_basal(p::Paciente) = p.pam
+pam_basal(p::Paciente) = p.pam # OK
 
 # Débito cardíaco basal [L/min]. `something(a, b)` devolve `a` se ele existir
 # (não for `nothing`) e `b` caso contrário. Ou seja: usa o DC medido, se houver;
@@ -153,12 +135,6 @@ não depende desse valor, porque o modelo multiplica Rp, VS e FC por fatores rel
 """
 debito_basal(p::Paciente) = something(p.dc, 3.0 * superficie_corporal(p))
 
-# Como o Paciente aparece quando é impresso na tela (terminal do Julia ou
-# relatórios). Redefinir `Base.show` muda só essa apresentação, não os dados.
-# `@printf` escreve texto formatado: `%s` = texto, `%d` = inteiro, `%.0f` =
-# número sem casas decimais, `%.2f` = duas casas, `%%` = o símbolo "%".
-# `round(Int, x)` arredonda para inteiro. `p.dc === nothing` testa se o DC
-# não foi medido; nesse caso o texto ganha "(estimado)".
 function Base.show(io::IO, p::Paciente)
     @printf(io, "%s: %d anos, %s, %.0f kg, %.0f cm, ASA %d | PA %.0f/%.0f (PAM %.0f) mmHg | FC %.0f bpm | DC %.2f L/min%s | PVI %.0f%%, IVCI %.0f%%",
             p.nome, round(Int, p.idade), p.sexo == :M ? "masc." : "fem.", p.peso, p.altura, p.asa,
