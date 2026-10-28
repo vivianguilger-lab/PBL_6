@@ -46,7 +46,6 @@ Efeito do propofol sobre a hemodinâmica. Cada variável X é multiplicada por
 `1 − Imax_X · s · Ceᵞ/(Ce50ᵞ + Ceᵞ)` (mínimo 0,05), com `s` a sensibilidade
 do paciente.
 """
-
 Base.@kwdef struct EfeitoHemodinamico  # como mencionado, todos os valores precisam ser verificados e mudados p/ dados reais, pois são ilustrativos
     # Ce50: concentração no sítio efetor (µg/ml) que produz metade do efeito
     # máximo. 3,0 µg/ml está na ordem do EC50 da resistência periférica de
