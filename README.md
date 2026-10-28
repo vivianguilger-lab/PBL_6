@@ -56,9 +56,9 @@ Paciente ──► PK, ke0 e atraso de Eleveld ───────────
 **Como o código funciona e como reproduzir do zero:** **[docs/guia_do_codigo.md](docs/guia_do_codigo.md)**
 (cada arquivo também tem comentários em cada bloco) ·
 Equações completas: **[docs/modelo_matematico.md](docs/modelo_matematico.md)** ·
-**Validação e rastreabilidade** (arquivo e linha de cada valor, fonte, veredito, pendências e
-bibliografia): **[docs/validacao.md](docs/validacao.md)** · **Ordem de revisão do código, com vieses:**
-**[docs/roteiro_de_validacao.md](docs/roteiro_de_validacao.md)** ·
+**Validação linha por linha** (na ordem dos arquivos: o que cada linha faz, de onde veio o dado,
+se está no repositório da Gabi, quem achou, vieses, pendências e bibliografia):
+**[docs/validacao.md](docs/validacao.md)** ·
 Revisão inicial de repositórios: [docs/revisao_github_literatura.md](docs/revisao_github_literatura.md)
 
 ## Instalação e uso
