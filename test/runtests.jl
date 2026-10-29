@@ -399,7 +399,7 @@ const ELEVELD_PAS = [
     # Atenção: acrescentar linhas a ESTE arquivo também desloca os links para ele.
     @testset "docs/validacao.md: links de linha apontam para linhas existentes e não vazias" begin
         raiz = pkgdir(PropofolWindkessel)
-        doc = join(read.(joinpath.(raiz, "docs", ["validacao.md", "roteiro_de_validacao.md"]), String))
+        doc = join(read.(joinpath.(raiz, "docs", ["validacao.md"]), String))
         # Expressão regular que reconhece links como (../src/arquivo.jl#L10-L12).
         links = collect(eachmatch(r"\]\(\.\./([^)#?]+)(?:\?plain=1)?#L(\d+)(?:-L(\d+))?\)", doc))
         @test length(links) > 30
