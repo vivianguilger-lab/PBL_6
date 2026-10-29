@@ -84,8 +84,8 @@ function janela_de_dose(pv; limiar_pam = 65.0, alvo_bis = 60.0, faixa = (0.5, 3.
     # maiores baixam mais a PAM). A dose máxima é essa fronteira (precisão de
     # 0,01 mg/kg); se nenhuma dose da faixa viola (NaN), vale o topo da faixa.
     dmax_viola = bissecao(d -> sim(d).pam_nadir < limiar_pam, faixa...)
-    dmax = isnan(dmax_viola) ? faixa[2] : dmax_viola
-    # `existe`: há janela se a dose mínima foi encontrada e não passa da máxima.
-    return (dose_min = dmin, dose_max = dmax, existe = !isnan(dmin) && dmin <= dmax,
+    dmax = isnan(dmax_viola) ? faixa[2] : dmax_viola == faixa[1] ? NaN : dmax_viola
+    # `existe`: há janela se as duas doses foram achadas e a mínima não passa da máxima (dose_max = NaN se até a menor dose já derruba a PAM).
+    return (dose_min = dmin, dose_max = dmax, existe = !isnan(dmin) && !isnan(dmax) && dmin <= dmax,
             limiar_pam = limiar_pam, alvo_bis = alvo_bis)
 end

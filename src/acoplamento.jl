@@ -14,7 +14,7 @@
 # instante e simulado continuando o estado do batimento anterior.
 #
 # ATENÇÃO (como no README do grupo): os valores padrão de `EfeitoHemodinamico`
-# e de `sensibilidade_hemodinamica` são ilustrativos, não ajustados a dados.
+# e de `sensibilidade_hemodinamica` são ilustrativos, não ajustados a dados.             # PROBLEMA! Valores ilustrativos devem ser substituidos por algo mais justificado
 # =============================================================================
 #
 # GUIA DE LEITURA (comentários acrescentados para o grupo; o código não mudou)
@@ -40,12 +40,13 @@
 # `::Float64` diz que o campo é um número real (com casas decimais).
 # Origem: valores do grupo (PropofolPBL, src/acoplamento.jl), ILUSTRATIVOS, sem
 # fonte nem calibração com pacientes (ver docs/validacao.md, seção 4.4).
+
 """
 Efeito do propofol sobre a hemodinâmica. Cada variável X é multiplicada por
 `1 − Imax_X · s · Ceᵞ/(Ce50ᵞ + Ceᵞ)` (mínimo 0,05), com `s` a sensibilidade
 do paciente.
 """
-Base.@kwdef struct EfeitoHemodinamico
+Base.@kwdef struct EfeitoHemodinamico  # como mencionado, todos os valores precisam ser verificados e mudados p/ dados reais, pois são ilustrativos
     # Ce50: concentração no sítio efetor (µg/ml) que produz metade do efeito
     # máximo. 3,0 µg/ml está na ordem do EC50 da resistência periférica de
     # Su 2022 (2,96 µg/ml), mas foi escolhido pelo grupo (ILUSTRATIVO).
@@ -64,6 +65,12 @@ Base.@kwdef struct EfeitoHemodinamico
     Imax_FC::Float64 = 0.05
 end
 
+# Acho bem importante mudar isso!!
+# Além disso, o modelo não possui barorreflexo, porque é uma simplificação estrutural do modelo.
+# O código assume que: propofol → PA ↓
+# Mas não permite: PA ↓ → barorreflexo → FC ↑
+# Portanto, a FC só pode cair pelo efeito definido.
+
 # -----------------------------------------------------------------------------
 # fator_efeito: quanto "sobra" de uma variável para um dado Ce
 # -----------------------------------------------------------------------------
@@ -78,7 +85,7 @@ end
 # Sintaxe Julia: `f(x) = expressão` define uma função curta, sem `function`.
 "Fator multiplicativo 1 − Imax·s·H(Ce), limitado a 0,05."
 fator_efeito(ef::EfeitoHemodinamico, Imax, s, Ce) =
-    max(1 - Imax * s * Ce^ef.γ / (ef.Ce50^ef.γ + Ce^ef.γ), 0.05)
+    max(1 - Imax * s * Ce^ef.γ / (ef.Ce50^ef.γ + Ce^ef.γ), 0.05)  # Também ilustrativo!
 
 # -----------------------------------------------------------------------------
 # Fator de sensibilidade s do paciente
@@ -110,7 +117,7 @@ propofol); IVCI de Zhang & Critchley 2016 (corte ótimo de 43%). Os coeficientes
 são do grupo, ilustrativos, ainda sem calibração (docs/validacao.md).
 """
 function sensibilidade_hemodinamica(pac::Paciente; k_idade = 0.01, k_asa = 0.15, k_pvi = 0.03, k_ivci = 0.01)
-    return 1.0 + k_idade * max(pac.idade - 50, 0) + k_asa * max(pac.asa - 2, 0) +
+    return 1.0 + k_idade * max(pac.idade - 50, 0) + k_asa * max(pac.asa - 2, 0) +        # ILUSTRATIVO TAMBÉM! 
            k_pvi * max(pac.pvi - 15, 0) + k_ivci * max(pac.ivci - 43, 0)
 end
 
