@@ -170,4 +170,4 @@ test/                    testes (GitHub Actions)
 ```
 
 O modelo anterior deste repositório (coração de elastância variável em malha fechada com
-barorreflexo) está no histórico do git, até o commit `d3dd331`.
+barorreflexo) está no histórico do github, até o commit `d3dd331`.
