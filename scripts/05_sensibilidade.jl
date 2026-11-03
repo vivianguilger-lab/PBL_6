@@ -99,7 +99,7 @@ end
 y = 1:length(linhas)
 xm = 1.15 * max(maximum(max(abs(l.menos), abs(l.mais)) for l in linhas), 0.1)
 p = bar(y, [l.menos for l in linhas]; orientation = :h, bar_width = 0.7, color = COR.s1, lw = 0, label = "−10%",
-        yticks = (y, [l.rot for l in linhas]), xlabel = "variação da PAM mínima (mmHg)",
+        yticks = (y, [l.rot for l in linhas]), xlabel = "Variação da PAM mínima (mmHg)",
         title = @sprintf("Sensibilidade local — %s (PAM mínima %.1f mmHg)", pac.nome, base),
         size = (950, 560), legend = :bottomright, left_margin = 6Plots.mm,
         xlims = (-xm, xm), ylims = (0.4, length(linhas) + 0.6))

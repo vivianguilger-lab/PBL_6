@@ -70,7 +70,7 @@ yBhat = simulate_wk(θB, solvex0(G(θB, h), uB), uB, h)
 # Painel A: pressão medida (linha grossa) e curvas dos modelos de 2, 3 e 4
 # elementos. Painel B: dados in vivo e o modelo de 4 elementos.
 pA = plot(t, y; color = COR.tinta2, lw = 2.5, label = "medida", title = "A. Stergiopulos 1999 (humano)",
-          xlabel = "s", ylabel = "mmHg", legend = :topright)
+          xlabel = "Tempo (s)", ylabel = "Pressão arterial (mmHg)", legend = :topright)
 for (k, nome) in enumerate(("2 elementos", "3 elementos", "4 elementos"))
     plot!(pA, t, resultadosA[nome].y; color = (COR.s1, COR.s2, COR.s3)[k], lw = 1.5,
           label = @sprintf("%s (RMSE %.1f)", nome, resultadosA[nome].rmse))
@@ -79,9 +79,9 @@ end
 n = min(length(yB), 800)
 tB = h .* (0:n-1)
 pB = plot(tB, yB[1:n]; color = COR.tinta2, lw = 2.5, label = "medida", title = "B. In vivo (porco)",
-          xlabel = "s", ylabel = "mmHg", legend = :topright)
+          xlabel = "Tempo (s)", ylabel = "Pressão arterial (mmHg)", legend = :topright)
 plot!(pB, tB, yBhat[1:n]; color = COR.s3, lw = 1.5, label = "Windkessel 4 elementos")
 # junta os dois painéis e grava em resultados/
-savefig(plot(pA, pB; layout = (1, 2), size = (1150, 400), bottom_margin = 6Plots.mm, left_margin = 6Plots.mm),
+savefig(plot(pA, pB; layout = (1, 2), size = (1250, 460), bottom_margin = 6Plots.mm, left_margin = 6Plots.mm),
         saida("identificacao_windkessel.png"))
 println("Figura: ", normpath(saida("identificacao_windkessel.png")))

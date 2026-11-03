@@ -10,6 +10,8 @@ using DataFrames
 using Statistics
 using Printf
 using Plots
+# figuras sem grade (sem quadriculado), como as dos outros scripts
+default(grid = false)
 using Optim
 using PropofolWindkessel
 
@@ -347,13 +349,13 @@ function main()
 
         # Gráfico de comparação por caso. A linha observada é a pressão real;
         # previsões padrão e calibrada são mostradas separadamente.
-        plt = plot(pred_default.time_after_induction_s ./ 60,
+        plt = plot(pred_default.time_after_induction_s,
             pred_default.pam_observed_mmHg; label="PAM observada", linewidth=2,
-            xlabel="Tempo após início da infusão (min)", ylabel="PAM (mmHg)",
+            xlabel="Tempo após início da infusão (s)", ylabel="PAM (mmHg)",
             title="VitalDB caso $(c.caseid) — $(c.partition)", legend=:best)
-        plot!(plt, pred_default.time_after_induction_s ./ 60, pred_default.pam_predicted_mmHg;
+        plot!(plt, pred_default.time_after_induction_s, pred_default.pam_predicted_mmHg;
             label="Modelo — parâmetros padrão", linewidth=2, linestyle=:dash)
-        plot!(plt, pred_calibrated.time_after_induction_s ./ 60, pred_calibrated.pam_predicted_mmHg;
+        plot!(plt, pred_calibrated.time_after_induction_s, pred_calibrated.pam_predicted_mmHg;
             label=(method_calibrated == "calibrado" ? "Modelo — calibrado no treino" : "Modelo — sem calibração"), linewidth=2)
         savefig(plt, joinpath(fig_dir, @sprintf("case_%05d_pam.png", c.caseid)))
 

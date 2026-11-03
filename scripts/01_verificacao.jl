@@ -91,16 +91,19 @@ errP = norm(estado_final(sys4, q, x0) .- x0) / norm(x0)
 # Funções terminadas em `!` (scatter!, plot!) desenham sobre um gráfico já feito.
 # t[1:60:end] pega 1 ponto a cada 60, para o gráfico não ficar poluído.
 pA = plot(t, exata; color = COR.s1, label = "exata  P0·e^(−t/τ)", title = "A. Diástole (Windkessel 2 elementos)",
-          xlabel = "s", ylabel = "mmHg")
+          xlabel = "Tempo (s)", ylabel = "Pressão arterial (mmHg)")
 scatter!(pA, t[1:60:end], y[1:60:end]; color = COR.s2, ms = 4, msw = 0, label = "windkessel-id (G2)")
-pB = plot(r.t, Cp_exa; color = COR.s1, label = "exata  exp(K·t)·A0", yscale = :log10,
-          title = "B. NeoPKPD: Cp após bolus", xlabel = "min", ylabel = "µg/ml")
-scatter!(pB, r.t[sel][1:60:end], r.Cp[sel][1:60:end]; color = COR.s2, ms = 4, msw = 0, label = "NeoPKPD")
+# r.t está em minutos; × 60 para o eixo em segundos
+pB = plot(60 .* r.t, Cp_exa; color = COR.s1, label = "exata  exp(K·t)·A0", yscale = :log10,
+          title = "B. NeoPKPD: Cp após bolus", xlabel = "Tempo (s)", ylabel = "Concentração plasmática (µg/ml)",
+          xticks = 0:240:1200)
+scatter!(pB, 60 .* r.t[sel][1:60:end], r.Cp[sel][1:60:end]; color = COR.s2, ms = 4, msw = 0, label = "NeoPKPD")
 pC = plot(tq, pq; color = COR.s1, label = "medida (Stergiopulos)", title = "C. Windkessel 4 elementos",
-          xlabel = "s", ylabel = "mmHg", legend = :topright)
+          xlabel = "Tempo (s)", ylabel = "Pressão arterial (mmHg)", legend = :topright,
+          ylims = (minimum(pq) - 3, maximum(pq) + 15))
 plot!(pC, tq, y4; color = COR.s2, label = "modelo (θ publicado)")
 # junta os três painéis lado a lado e grava em resultados/verificacao.png
-savefig(plot(pA, pB, pC; layout = (1, 3), size = (1150, 380), bottom_margin = 6Plots.mm, left_margin = 6Plots.mm),
+savefig(plot(pA, pB, pC; layout = (1, 3), size = (1300, 460), bottom_margin = 6Plots.mm, left_margin = 6Plots.mm),
         saida("verificacao.png"))
 # mostra onde a figura foi gravada
 println("Figura: ", normpath(saida("verificacao.png")))

@@ -62,18 +62,18 @@ end
 # Velocidade de injeção: a mesma dose do protocolo injetada em 10, 60 e 120 s.
 # Cria um gráfico vazio (pV) e acrescenta uma curva de PAM por velocidade.
 println("\nVelocidade de injeção ($(dprot) mg/kg):")
-pV = plot(; title = "PAM prevista × velocidade de injeção ($(dprot) mg/kg)", xlabel = "minutos após o início",
+pV = plot(; title = "PAM prevista × velocidade de injeção ($(dprot) mg/kg)", xlabel = EIXO_T, xticks = MARCAS_T,
           ylabel = "PAM (mmHg)", legend = :bottomright, size = (800, 450))
 # enumerate dá o número da volta (k = 1, 2, 3) e o valor (dur, em segundos)
 for (k, dur) in enumerate((10.0, 60.0, 120.0))
     r = simular_inducao(pv; dose_mgkg = dprot, duracao_bolus = dur, manutencao_ugkgmin = manut)
     mt = metricas(r)
     @printf("  bolus em %3.0f s: PAM mínima %.1f mmHg (%.1f min), BIS mín %.0f\n", dur, mt.pam_nadir, mt.t_nadir, mt.bis_min)
-    # minutos(r, ...) conta o tempo a partir do início do bolus
-    plot!(pV, minutos(r, r.bat.t_min), r.bat.PAM; color = (COR.s1, COR.s2, COR.s3)[k], label = "injeção em $(Int(dur)) s")
+    # segundos(r, ...) conta o tempo a partir do início do bolus, em segundos
+    plot!(pV, segundos(r, r.bat.t_min), r.bat.PAM; color = (COR.s1, COR.s2, COR.s3)[k], label = "injeção em $(Int(dur)) s")
 end
 # linhas tracejadas de 65 e 55 mmHg (função de graficos.jl)
-limiares!(pV, 20.0)
+limiares!(pV, 20.0 * 60)
 # grava as duas figuras em resultados/
 savefig(fig_doses(tab, jan; titulo = "$(pac.nome) — janela de dose individual"), saida("$(nome)_doses.png"))
 savefig(pV, saida("$(nome)_velocidade.png"))

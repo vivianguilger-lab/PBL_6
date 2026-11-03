@@ -17,7 +17,7 @@
 <style>
 /* Variáveis de cor e de fonte do tema CLARO (padrão). :root é a raiz da página; todo nome que começa com -- é uma variável. */
 /* O resto do CSS usa var(--nome) em vez de repetir códigos de cor: trocar um valor aqui muda a página inteira. */
-/* --bg e --surface: fundos; --ink: texto; --muted: texto discreto; --grid e --axis: linhas de grade e de eixo dos gráficos. */
+/* --bg e --surface: fundos; --ink: texto; --muted: texto discreto; --grid e --axis: linhas de grade e de eixo (os gráficos não usam grade). */
 /* --s1, --s2, --s3: cores das curvas (azul, laranja, verde); --band e --band-pa: faixas sombreadas (ex.: PAS-PAD). */
 /* --good, --warn, --crit: verde, amarelo e vermelho do risco baixo, moderado e alto; --hero: azul-escuro do cabeçalho. */
 :root {
@@ -228,7 +228,7 @@ main { display: flex; flex-direction: column; gap: 18px; min-width: 0; }
 .loading-dots::after { content: "…"; animation: blink 1s infinite; }
 @keyframes blink { 50% { opacity: .2; } }
 /* .legend e .sw: legenda dos gráficos, com a amostra de cor de cada curva (linha, caixa ou tracejado). */
-.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 12px; color: var(--ink-2); margin: 0 0 8px; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 14px; color: var(--ink-2); margin: 0 0 8px; }
 .legend span { display: inline-flex; align-items: center; gap: 6px; }
 .sw { width: 16px; height: 3px; border-radius: 2px; display: inline-block; }
 .sw.box { height: 10px; border-radius: 3px; }
@@ -384,7 +384,7 @@ dl.params dt { color: var(--ink-2); } dl.params dd { margin: 0; font-weight: 600
         <div class="grid2" style="margin-top:12px">
           <label class="f">Tempo de injeção<div class="inp"><select id="dur">
             <option value="10">10 s</option><option value="20">20 s</option><option value="30" selected>30 s</option>
-            <option value="60">1 min</option><option value="120">2 min</option></select></div></label>
+            <option value="60">60 s</option><option value="120">120 s</option></select></div></label>
           <label class="f">Manutenção<div class="inp"><input id="manut" type="number" min="0" max="300" step="10" value="100"><span class="u">µg/kg/min</span></div></label>
         </div>
         <!-- Modelo farmacocinético usado para calcular Cp e Ce: Schnider, Marsh ou Eleveld. -->
@@ -671,7 +671,7 @@ function el(tag, attrs, parent) {
 function chart(box, cfg) {
   // Limpa a caixa e define largura (a da tela, no mínimo 280 px), altura e margens (m) para caber os rótulos dos eixos.
   box.innerHTML = "";
-  const W = Math.max(box.clientWidth, 280), H = cfg.h || 220, m = { l: 42, r: 14, t: cfg.yLabel ? 22 : 12, b: 30 };
+  const W = Math.max(box.clientWidth, 280), H = cfg.h || 220, m = { l: 42, r: 14, t: cfg.yLabel ? 22 : 12, b: cfg.xLabel ? 36 : 30 };
   const svg = el("svg", { viewBox: `0 0 ${W} ${H}`, height: H, role: "img", "aria-label": cfg.aria || "" }, box);
   // Junta todos os valores de y para achar o mínimo e o máximo, com 6% de folga acima e abaixo (salvo limites fixos em cfg).
   const all = [];
@@ -681,22 +681,24 @@ function chart(box, cfg) {
   let y0 = cfg.yMin ?? Math.min(...all), y1 = cfg.yMax ?? Math.max(...all);
   if (cfg.yMin == null) y0 -= (y1 - y0) * 0.06; if (cfg.yMax == null) y1 += (y1 - y0) * 0.06;
   if (cfg.zero) y0 = Math.min(0, y0);
-  // Escalas: X(v) e Y(v) convertem um valor (minutos, mmHg) em posição em pixels dentro do desenho.
+  // Escalas: X(v) e Y(v) convertem um valor (segundos, mmHg) em posição em pixels dentro do desenho.
   // No SVG o eixo y cresce para baixo, por isso Y parte da base (H - m.b) e sobe conforme o valor aumenta.
   const xs0 = cfg.xMin, xs1 = cfg.xMax;
   const X = v => m.l + (v - xs0) / (xs1 - xs0) * (W - m.l - m.r);
   const Y = v => H - m.b - (v - y0) / (y1 - y0) * (H - m.t - m.b);
-  // Eixos: linhas de grade horizontais com os valores à esquerda, marcas de tempo embaixo, linha do eixo x e unidade do eixo y.
+  // Eixos (sem grade): valores do eixo y à esquerda, marcas de tempo embaixo, linha do eixo x e nome do eixo y, "grandeza (unidade)", no alto.
   const g = el("g", {}, svg);
   for (const v of ticks(y0, y1, 5)) {
-    el("line", { x1: m.l, x2: W - m.r, y1: Y(v), y2: Y(v), stroke: css("--grid"), "stroke-width": 1 }, g);
     el("text", { x: m.l - 6, y: Y(v) + 4, "text-anchor": "end", "font-size": 11, fill: css("--muted") }, g).textContent = fmt(v, cfg.yDec || 0);
   }
-  for (const v of ticks(xs0, xs1, 8)) {
-    el("text", { x: X(v), y: H - m.b + 16, "text-anchor": "middle", "font-size": 11, fill: css("--muted") }, g).textContent = fmt(v, cfg.xDec || 0);
+  // Eixo de tempo (xStep, em s): marcas a cada xStep segundos (o dobro em gráficos estreitos); nos outros, valores redondos.
+  const pX = cfg.xStep ? cfg.xStep * (W < 560 ? 2 : 1) : 0;
+  const xt = pX ? Array.from({ length: Math.floor(xs1 / pX) - Math.ceil(xs0 / pX) + 1 }, (_, i) => (Math.ceil(xs0 / pX) + i) * pX) : ticks(xs0, xs1, 8);
+  for (const v of xt) {
+    el("text", { x: X(v), y: H - m.b + 16, "text-anchor": "middle", "font-size": 11, fill: css("--muted") }, g).textContent = pX ? String(v) : fmt(v, cfg.xDec || 0);
   }
   el("line", { x1: m.l, x2: W - m.r, y1: H - m.b, y2: H - m.b, stroke: css("--axis") }, g);
-  if (cfg.yLabel) el("text", { x: m.l - 6, y: 10, "text-anchor": "end", "font-size": 11, fill: css("--muted") }, g).textContent = cfg.yLabel;
+  if (cfg.yLabel) el("text", { x: 4, y: 10, "text-anchor": "start", "font-size": 11, fill: css("--ink-2") }, g).textContent = cfg.yLabel;
   // Linhas verticais tracejadas (ex.: início do bolus) com rótulo opcional, e o título do eixo x.
   (cfg.vlines || []).forEach(v => {
     el("line", { x1: X(v.x), x2: X(v.x), y1: m.t, y2: H - m.b, stroke: css("--axis"), "stroke-width": 1, "stroke-dasharray": "2 3" }, g);
@@ -791,8 +793,9 @@ const ICONES = {
   MODERADO: '<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"><path d="M12 6v8M12 18h.01"/></svg>',
   ALTO: '<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"><path d="M12 6v8M12 18h.01"/></svg>',
 };
-// minTip: texto do tempo no tooltip, por exemplo "2,0 min após o bolus".
-const minTip = x => `${fmt(x, 1)} min após o bolus`;
+// segTip: texto do tempo no tooltip, por exemplo "120 s após o bolus"; EIXO_T: nome do eixo de tempo dos gráficos.
+const segTip = x => `${fmt(x)} s após o bolus`;
+const EIXO_T = "Tempo após o início do bolus (s)";
 
 // régua da PAM: faixas < 55, 55–65 e ≥ 65 mmHg com a PAM basal e a mínima prevista
 // A escala vai de 40 mmHg até um pouco acima da PAM basal. A PAM basal é o círculo vazado e a mínima prevista o círculo cheio,
@@ -838,7 +841,8 @@ function meter(box, mt) {
 // Nomes curtos: mt = métricas, b = batimentos (PA, FC, DC a cada batimento), s = sinais (BIS, Cp, Ce a cada 5 s), v = paciente virtual.
 function renderTudo() {
   const r = ultimo, mt = r.metricas, b = r.batimentos, s = r.sinais, v = r.virtual;
-  const xmax = Math.max(...b.t);
+  // Os tempos chegam do servidor em minutos; tb e ts são os mesmos tempos em segundos, usados no eixo x de todos os gráficos.
+  const tb = b.t.map(x => x * 60), ts = s.t.map(x => x * 60), xmax = Math.max(...tb);
   // risco
   // A classe BAIXO/MODERADO/ALTO pinta o cartão (ver .risk no CSS); a frase resume a dose, a queda e o tempo até a PAM mínima.
   $("risk").className = "risk " + mt.risco;
@@ -846,49 +850,51 @@ function renderTudo() {
   $("riskLvl").textContent = mt.risco[0] + mt.risco.slice(1).toLowerCase();
   const dose = r.corpo.protocolo;
   $("riskTxt").innerHTML = `Com <b>${fmt(+dose.dose_mgkg, 2)} mg/kg (${fmt(r.dose_mg)} mg)</b>, a PAM prevista cai de
-    <b>${fmt(mt.pam_basal)}</b> para <b>${fmt(mt.pam_nadir)} mmHg</b> em ${fmt(mt.t_nadir, 1)} min (−${fmt(mt.queda_pct)}%).
+    <b>${fmt(mt.pam_basal)}</b> para <b>${fmt(mt.pam_nadir)} mmHg</b> em ${fmt(mt.t_nadir * 60)} s (−${fmt(mt.queda_pct)}%).
     <small>${mt.risco === "ALTO" ? "A PAM mínima prevista fica abaixo de 55 mmHg." : mt.risco === "MODERADO"
       ? "A PAM mínima prevista fica entre 55 e 65 mmHg." : "A PAM mínima prevista fica em 65 mmHg ou mais."}</small>`;
   meter($("meter"), mt);
   // blocos
-  // Os cinco blocos de números (tiles) logo abaixo do cartão de risco.
+  // Os cinco blocos de números (tiles) logo abaixo do cartão de risco. O servidor manda os tempos em minutos; × 60 mostra em segundos.
   $("tNadir").innerHTML = `${fmt(mt.pam_basal)} → ${fmt(mt.pam_nadir)} <small>mmHg</small>`;
-  $("tNadirS").textContent = `em ${fmt(mt.t_nadir, 1)} min · PA mínima ${fmt(mt.pas_nadir)}/${fmt(mt.pad_nadir)}`;
-  $("t65").innerHTML = `${fmt(mt.min_abaixo_65, 1)} <small>min</small>`;
+  $("tNadirS").textContent = `em ${fmt(mt.t_nadir * 60)} s · PA mínima ${fmt(mt.pas_nadir)}/${fmt(mt.pad_nadir)}`;
+  $("t65").innerHTML = `${fmt(mt.min_abaixo_65 * 60)} <small>s</small>`;
   $("t65S").textContent = "limiar associado a lesão de órgãos";
   $("tQueda").innerHTML = `${fmt(mt.queda_pct)}<small>%</small>`;
-  $("tQuedaS").textContent = `da PAM basal, em ${fmt(mt.t_nadir, 1)} min`;
-  $("t55").innerHTML = `${fmt(mt.min_abaixo_55, 1)} <small>min</small>`;
-  $("tBis").innerHTML = mt.t_hipnose != null ? `${fmt(mt.t_hipnose, 1)} <small>min</small>` : "não atingida";
-  $("tBisS").textContent = `BIS mínimo ${fmt(mt.bis_min)} · ${fmt(mt.tempo_hipnose, 1)} min abaixo de 60`;
+  $("tQuedaS").textContent = `da PAM basal, em ${fmt(mt.t_nadir * 60)} s`;
+  $("t55").innerHTML = `${fmt(mt.min_abaixo_55 * 60)} <small>s</small>`;
+  $("tBis").innerHTML = mt.t_hipnose != null ? `${fmt(mt.t_hipnose * 60)} <small>s</small>` : "não atingida";
+  $("tBisS").textContent = `BIS mínimo ${fmt(mt.bis_min)} · ${fmt(mt.tempo_hipnose * 60)} s abaixo de 60`;
 
   // PA
   // Cores das séries lidas do CSS (mudam com o tema). Gráfico 01: PAM (linha azul), faixa PAS-PAD (cinza), limiares de 65 e 55 mmHg,
   // linha do bolus no tempo 0 e ponto da PAM mínima. PAS e PAD entram como séries invisíveis só para aparecerem no tooltip.
   const S1 = css("--s1"), S2 = css("--s2"), S3 = css("--s3"), S4 = css("--s4");
-  const bands = [{ x: b.t, lo: b.pad, hi: b.pas, color: css("--band-pa") }];
+  const bands = [{ x: tb, lo: b.pad, hi: b.pas, color: css("--band-pa") }];
   const leg = [{ cor: S1, txt: "PAM prevista" }, { cor: css("--band-pa"), tipo: "box", txt: "PAS–PAD" }];
   leg.push({ cor: css("--serious"), tipo: "dash", txt: "65 mmHg" }, { cor: css("--crit"), tipo: "dash", txt: "55 mmHg" });
   legenda($("legPA"), leg);
-  chart($("chPA"), { h: 300, xMin: Math.min(...b.t), xMax: xmax, xLabel: "minutos após o início do bolus", xTip: minTip,
+  chart($("chPA"), { h: 300, xMin: Math.min(...tb), xMax: xmax, xLabel: EIXO_T, xTip: segTip, xStep: 120,
     yMin: Math.min(40, ...b.pad.filter(x => x != null)) - 2, aria: "Curva de pressão arterial prevista",
-    bands, series: [{ x: b.t, y: b.pam, color: S1, label: "PAM", unit: "mmHg", w: 2.5 },
-                    { x: b.t, y: b.pas, color: "transparent", label: "PAS", unit: "mmHg" },
-                    { x: b.t, y: b.pad, color: "transparent", label: "PAD", unit: "mmHg" }],
+    bands, series: [{ x: tb, y: b.pam, color: S1, label: "PAM", unit: "mmHg", w: 2.5 },
+                    { x: tb, y: b.pas, color: "transparent", label: "PAS", unit: "mmHg" },
+                    { x: tb, y: b.pad, color: "transparent", label: "PAD", unit: "mmHg" }],
     hlines: [{ y: 65, color: css("--serious"), label: "65" }, { y: 55, color: css("--crit"), label: "55" }],
-    vlines: [{ x: 0, label: "bolus" }], yLabel: "mmHg",
-    points: [{ x: mt.t_nadir, y: mt.pam_nadir, color: S1, label: `mínima ${fmt(mt.pam_nadir)} mmHg · ${fmt(mt.t_nadir, 1)} min`, dy: 26 }] });
+    vlines: [{ x: 0, label: "bolus" }], yLabel: "Pressão arterial (mmHg)",
+    points: [{ x: mt.t_nadir * 60, y: mt.pam_nadir, color: S1, label: `mínima ${fmt(mt.pam_nadir)} mmHg · ${fmt(mt.t_nadir * 60)} s`, dy: 26 }] });
   // Gráficos 02 a 05: FC, DC (eixo a partir de zero), BIS (faixa-alvo 40-60 sombreada) e concentrações Cp e Ce.
-  chart($("chFC"), { xMin: b.t[0], xMax: xmax, xTip: minTip, vlines: [{ x: 0 }], series: [{ x: b.t, y: b.fc, color: S1, label: "FC", unit: "bpm" }] });
-  chart($("chDC"), { xMin: b.t[0], xMax: xmax, xTip: minTip, zero: true, yDec: 1, vlines: [{ x: 0 }], series: [{ x: b.t, y: b.dc, color: S1, label: "DC", unit: "L/min", dec: 2 }] });
-  chart($("chBIS"), { xMin: s.t[0], xMax: xmax, xTip: minTip, yMin: 0, yMax: 100, vlines: [{ x: 0 }], hbands: [{ y0: 40, y1: 60, color: css("--muted"), op: .14 }],
-    series: [{ x: s.t, y: s.bis, color: S1, label: "BIS" }] });
+  chart($("chFC"), { xMin: tb[0], xMax: xmax, xTip: segTip, xStep: 120, xLabel: EIXO_T, yLabel: "Frequência cardíaca (bpm)", vlines: [{ x: 0 }],
+    series: [{ x: tb, y: b.fc, color: S1, label: "FC", unit: "bpm" }] });
+  chart($("chDC"), { xMin: tb[0], xMax: xmax, xTip: segTip, xStep: 120, xLabel: EIXO_T, yLabel: "Débito cardíaco (L/min)", zero: true, yDec: 1, vlines: [{ x: 0 }],
+    series: [{ x: tb, y: b.dc, color: S1, label: "DC", unit: "L/min", dec: 2 }] });
+  chart($("chBIS"), { xMin: ts[0], xMax: xmax, xTip: segTip, xStep: 120, xLabel: EIXO_T, yLabel: "BIS (0–100)", yMin: 0, yMax: 100, vlines: [{ x: 0 }],
+    hbands: [{ y0: 40, y1: 60, color: css("--muted"), op: .14 }], series: [{ x: ts, y: s.bis, color: S1, label: "BIS" }] });
   // O eixo das concentrações vai até 6 µg/ml ou 1,4 × o maior Ce; o pico de Cp logo após o bolus é cortado nesse teto.
   const ceMax = Math.max(6, 1.4 * Math.max(...s.ce));
   legenda($("legCE"), [{ cor: S1, txt: "plasma (Cp)" }, { cor: S2, txt: "sítio efetor (Ce)" }]);
-  chart($("chCE"), { xMin: s.t[0], xMax: xmax, xTip: minTip, yMin: 0, yMax: ceMax, yDec: 0, vlines: [{ x: 0 }],
-    series: [{ x: s.t, y: s.cp.map(c => Math.min(c, ceMax)), color: S1, label: "Cp", unit: "µg/ml", dec: 1 },
-             { x: s.t, y: s.ce, color: S2, label: "Ce", unit: "µg/ml", dec: 1 }] });
+  chart($("chCE"), { xMin: ts[0], xMax: xmax, xTip: segTip, xStep: 120, xLabel: EIXO_T, yLabel: "Concentração (µg/ml)", yMin: 0, yMax: ceMax, yDec: 0, vlines: [{ x: 0 }],
+    series: [{ x: ts, y: s.cp.map(c => Math.min(c, ceMax)), color: S1, label: "Cp", unit: "µg/ml", dec: 1 },
+             { x: ts, y: s.ce, color: S2, label: "Ce", unit: "µg/ml", dec: 1 }] });
   // mecanismos
   // Cartão 07: variação (%) de Rp, VS e FC no momento da PAM mínima, em três cartões, e o gráfico dessas variações no tempo.
   $("mech").innerHTML = [
@@ -897,11 +903,11 @@ function renderTudo() {
     ["Cronotropismo", "frequência cardíaca", mt.fc_nadir_pct, S3]].map(([t, d, p, c]) =>
     `<div><div class="k"><span class="sw" style="background:${c}"></span>${t}</div><div class="v">${p > 0 ? "+" : ""}${fmt(p)}%</div><div class="d">${d}, no momento da PAM mínima</div></div>`).join("");
   legenda($("legMec"), [{ cor: S1, txt: "resistência periférica" }, { cor: S2, txt: "volume sistólico" }, { cor: S3, txt: "frequência cardíaca" }]);
-  chart($("chMec"), { xMin: b.t[0], xMax: xmax, xTip: minTip, xLabel: "minutos após o início do bolus", yLabel: "% do basal", vlines: [{ x: 0 }],
+  chart($("chMec"), { xMin: tb[0], xMax: xmax, xTip: segTip, xStep: 120, xLabel: EIXO_T, yLabel: "Variação em relação ao basal (%)", vlines: [{ x: 0 }],
     hlines: [{ y: 0, color: css("--axis") }],
-    series: [{ x: b.t, y: b.rp, color: S1, label: "resistência", unit: "%" },
-             { x: b.t, y: b.vs, color: S2, label: "volume sistólico", unit: "%" },
-             { x: b.t, y: b.fcp, color: S3, label: "FC", unit: "%" }] });
+    series: [{ x: tb, y: b.rp, color: S1, label: "resistência", unit: "%" },
+             { x: tb, y: b.vs, color: S2, label: "volume sistólico", unit: "%" },
+             { x: tb, y: b.fcp, color: S3, label: "FC", unit: "%" }] });
   // paciente virtual
   // Cartão 08: lista de pares [nome, valor] transformada em linhas da lista de parâmetros. Se a tabela de doses já chegou, ela é redesenhada também.
   const P = [["PA do modelo", `${fmt(v.pas)}/${fmt(v.pad)} (PAM ${fmt(v.pam)}) mmHg`],
@@ -939,18 +945,18 @@ function renderDoses() {
   const x = d.doses.map(o => o.dose), S1 = css("--s1");
   legenda($("legDose"), [{ cor: S1, txt: "PAM mínima prevista" }, { cor: css("--good"), tipo: "box", txt: "faixa sugerida" },
     { cor: css("--serious"), tipo: "dash", txt: "65 mmHg" }, { cor: css("--crit"), tipo: "dash", txt: "55 mmHg" }]);
-  chart($("chDose"), { h: 220, xMin: x[0], xMax: x[x.length - 1], xDec: 2, xLabel: "dose (mg/kg) · clique para simular",
+  chart($("chDose"), { h: 220, xMin: x[0], xMax: x[x.length - 1], xDec: 2, xLabel: "Dose (mg/kg) · clique para simular",
     xTip: v => `${fmt(v, 2)} mg/kg`, onclick: v => { const dd = Math.round(v * 4) / 4; $("dose").value = $("doseR").value = dd; atualizaDose(); simular(); },
     vbands: j.existe ? [{ x0: j.dose_min, x1: j.dose_max, color: css("--good"), op: .12 }] : [],
     series: [{ x, y: d.doses.map(o => o.pam_nadir), color: S1, label: "PAM mínima", unit: "mmHg", marks: true }],
     points: atual >= x[0] && atual <= x[x.length - 1] ? [{ x: atual, y: ultimo.metricas.pam_nadir, color: css("--ink"), r: 6, label: "dose atual", dy: -12 }] : [],
-    yLabel: "mmHg",
+    yLabel: "PAM mínima (mmHg)",
     hlines: [{ y: 65, color: css("--serious"), label: "65" }, { y: 55, color: css("--crit"), label: "55" }] });
   // Tabela: uma linha por dose, com a dose atual destacada (classe sel). Clicar numa linha simula aquela dose e volta ao topo da página.
   const tb = $("tabDoses").querySelector("tbody");
   tb.innerHTML = d.doses.map(o => `<tr data-d="${o.dose}" class="${Math.abs(o.dose - atual) < 1e-6 ? "sel" : ""}">
     <td>${fmt(o.dose, 2)} mg/kg</td><td>${fmt(o.mg)} mg</td><td>${fmt(o.pam_nadir)} mmHg</td><td>${fmt(o.queda_pct)}%</td>
-    <td>${fmt(o.min_abaixo_65, 1)} min</td><td>${fmt(o.min_abaixo_55, 1)} min</td><td>${fmt(o.bis_min)}</td>
+    <td>${fmt(o.min_abaixo_65 * 60)} s</td><td>${fmt(o.min_abaixo_55 * 60)} s</td><td>${fmt(o.bis_min)}</td>
     <td><span class="pill ${o.risco}"><i></i>${o.risco[0] + o.risco.slice(1).toLowerCase()}</span></td></tr>`).join("");
   tb.querySelectorAll("tr").forEach(tr => tr.onclick = () => {
     $("dose").value = $("doseR").value = tr.dataset.d; atualizaDose(); simular(); window.scrollTo({ top: 0, behavior: "smooth" }); });
@@ -963,8 +969,8 @@ $("print").onclick = () => window.print();
 // para abrir direto no Excel em português; depois cria um link temporário e o clica para baixar o arquivo curva_prevista.csv.
 $("csv").onclick = () => {
   const b = ultimo.batimentos;
-  let txt = "t_min;PAS;PAD;PAM;FC;DC\n";
-  b.t.forEach((t, i) => txt += [t, b.pas[i], b.pad[i], b.pam[i], b.fc[i], b.dc[i]].map(x => String(x).replace(".", ",")).join(";") + "\n");
+  let txt = "t_s;PAS;PAD;PAM;FC;DC\n";
+  b.t.forEach((t, i) => txt += [+(t * 60).toFixed(2), b.pas[i], b.pad[i], b.pam[i], b.fc[i], b.dc[i]].map(x => String(x).replace(".", ",")).join(";") + "\n");
   const a = document.createElement("a");
   a.href = URL.createObjectURL(new Blob([txt], { type: "text/csv" })); a.download = "curva_prevista.csv"; a.click();
 };

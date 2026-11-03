@@ -101,21 +101,22 @@ end
 #    (docs/validacao.md, seção 3, item 9).
 fixa = resultados["2 mg/kg para todos"]
 pA = histogram([r.pam_nadir for r in res]; bins = 30:2.5:110, color = COR.s1, lw = 0, label = "",
-               title = "A. PAM nadir (dose ajustada por idade)", xlabel = "mmHg", ylabel = "pacientes")
+               title = "A. PAM nadir (dose ajustada por idade)", xlabel = "PAM nadir (mmHg)", ylabel = "Pacientes (n)")
 for (l, c) in zip((65, 55), (COR.serio, COR.critico))
     vline!(pA, [l]; color = c, ls = :dash, lw = 1.2, label = "")
-    annotate!(pA, l + 1, 1, text("$l", 7, COR.tinta2, :left, :bottom))
+    annotate!(pA, l + 1, 1, text("$l", 10, COR.tinta2, :left, :bottom))
 end
 pB = scatter([r.idade for r in fixa], [r.queda_pct for r in fixa]; color = COR.s2, ms = 3, msw = 0, alpha = 0.6,
-             label = "2 mg/kg para todos", title = "B. Queda da PAM × idade", xlabel = "idade (anos)",
-             ylabel = "queda (%)", legend = :topleft)
+             label = "2 mg/kg para todos", title = "B. Queda da PAM × idade", xlabel = "Idade (anos)",
+             ylabel = "Queda da PAM (%)", legend = :topleft)
 scatter!(pB, [r.idade for r in res], [r.queda_pct for r in res]; color = COR.s1, ms = 3, msw = 0, alpha = 0.6,
          label = "ajustada por idade")
 x = 1:length(rotulos)
 pC = bar(x .- 0.2, inc55["2 mg/kg para todos"]; bar_width = 0.38, color = COR.s2, lw = 0, label = "2 mg/kg para todos",
-         title = "C. PAM < 55 mmHg por faixa etária (%)", xticks = (x, rotulos), ylims = (0, 70), legend = :topleft)
+         title = "C. PAM < 55 mmHg por faixa etária", xticks = (x, rotulos),
+         xlabel = "Faixa etária (anos)", ylabel = "Pacientes com PAM < 55 mmHg (%)", ylims = (0, 70), legend = :topleft)
 bar!(pC, x .+ 0.2, inc55["ajustada por idade"]; bar_width = 0.38, color = COR.s1, lw = 0, label = "ajustada por idade")
-savefig(plot(pA, pB, pC; layout = (1, 3), size = (1200, 400), bottom_margin = 6Plots.mm, left_margin = 5Plots.mm),
+savefig(plot(pA, pB, pC; layout = (1, 3), size = (1300, 460), bottom_margin = 6Plots.mm, left_margin = 5Plots.mm),
         saida("coorte_virtual.png"))
 
 # CSV com uma linha por paciente (protocolo de dose ajustada por idade).
