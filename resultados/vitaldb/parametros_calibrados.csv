@@ -1,0 +1,2 @@
+status,objective,pk_model,Ce50_default,gamma_default,Imax_Rp_default,Imax_VS_default,Imax_FC_default,Ce50_calibrated,gamma_calibrated,Imax_Rp_calibrated,Imax_VS_calibrated,Imax_FC_calibrated,n_cases,n_train_clean,n_test_clean
+não realizada: poucos casos limpos independentes,NaN,schnider,3.0,2.0,0.25,0.15,0.05,3.0,2.0,0.25,0.15,0.05,21,0,0

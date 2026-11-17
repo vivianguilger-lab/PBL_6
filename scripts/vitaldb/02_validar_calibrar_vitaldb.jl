@@ -336,6 +336,8 @@ function main()
     test_pam_default = Float64[]
     test_pam_calibrated = Float64[]
     for c in prepared
+        pred_default = nothing
+        pred_calibrated = nothing
         for (method, effect) in (("padrao", default_effect), (method_calibrated, calibrated_effect))
             push!(metric_rows, case_metrics(c, effect, method))
             pred_df = prediction_dataframe(c, effect)
@@ -398,13 +400,19 @@ function main()
         scatter(test_pam_observed, test_pam_default; label="Parâmetros padrão", alpha=0.45,
             xlabel="PAM observada (mmHg)", ylabel="PAM prevista (mmHg)",
             title="Teste independente — modelo padrão vs observado")
-        plot!(lims, lims; label="Igualdade", linestyle=:dash, linewidth=2)
+        plot!(collect(lims), collect(lims);
+            label="Igualdade",
+            linestyle=:dash,
+            linewidth=2)
         savefig(joinpath(fig_dir, "dispersao_pam_teste_padrao.png"))
 
         scatter(test_pam_observed, test_pam_calibrated; label="Parâmetros calibrados", alpha=0.45,
             xlabel="PAM observada (mmHg)", ylabel="PAM prevista (mmHg)",
             title=(method_calibrated == "calibrado" ? "Teste independente — modelo calibrado vs observado" : "Teste independente — modelo sem calibração vs observado"))
-        plot!(lims, lims; label="Igualdade", linestyle=:dash, linewidth=2)
+        plot!(collect(lims), collect(lims);
+            label="Igualdade",
+            linestyle=:dash,
+            linewidth=2)        
         savefig(joinpath(fig_dir, method_calibrated == "calibrado" ? "dispersao_pam_teste_calibrado.png" : "dispersao_pam_teste_sem_calibracao.png"))
     end
 
