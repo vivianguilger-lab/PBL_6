@@ -298,10 +298,10 @@ function main()
     length(prepared) >= 3 || error("Menos de 3 casos processáveis. Revise os arquivos e os critérios de seleção.")
 
     default_effect = EfeitoHemodinamico()
-    # Ajuste somente no conjunto de treino e somente quando as trilhas disponíveis
-    # não registram infusão concomitante de outro fármaco. 'unknown' não é tratado como zero.
-    train_clean = [c for c in prepared if c.partition == "treino" && c.coadmin_status == "none_recorded"]
-    test_clean = [c for c in prepared if c.partition == "teste" && c.coadmin_status == "none_recorded"]
+    # Calibração exploratória sob coadministração.
+# Os pacientes de teste permanecem independentes do treinamento.
+    train_clean = [c for c in prepared if c.partition == "treino"]
+    test_clean = [c for c in prepared if c.partition == "teste"]
     calibrated_effect = default_effect
     calibration_status = "não realizada: poucos casos limpos independentes"
     objective_value = NaN
@@ -309,7 +309,16 @@ function main()
         println("\nCalibrando Ce50, gamma e Imax no treino: $(length(train_clean)) casos; teste limpo separado: $(length(test_clean)) casos.")
         x0 = [3.0, 2.0, 0.25, 0.15, 0.05]
         objective(x) = calibration_objective(x, train_clean)
-        result = Optim.optimize(objective, x0, Optim.NelderMead(); iterations=100, show_trace=false, store_trace=false)
+        result = Optim.optimize(
+            objective,
+            x0,
+            Optim.NelderMead(),
+            Optim.Options(
+                iterations = 100,
+                show_trace = false,
+                store_trace = false
+            )
+        )
         xfit = Optim.minimizer(result)
         objective_value = Optim.minimum(result)
         calibrated_effect = effect_from_vector(xfit)
