@@ -156,24 +156,73 @@ function interpolate_observation(t::Vector{Float64}, y::Vector{Float64}, target:
     return y[idx] + fraction * (y[idx + 1] - y[idx])
 end
 
+
 function aligned_pair(t_pred_s::Vector{Float64}, y_pred::Vector{Float64},
                       t_obs::Vector{Float64}, y_obs::Vector{Float64})
+
     predicted = Float64[]
     observed = Float64[]
     times = Float64[]
-    for i in eachindex(t_pred_s)
-        t = t_pred_s[i]
-        BASELINE_SECONDS <= t <= BASELINE_SECONDS + WINDOW_SECONDS || continue
-        yp = y_pred[i]
-        yo = interpolate_observation(t_obs, y_obs, t)
-        if isfinite(yp) && isfinite(yo)
+
+    # Verificar consistência dos vetores
+    length(t_pred_s) == length(y_pred) ||
+        error("Tempos e valores previstos possuem tamanhos diferentes")
+
+    length(t_obs) == length(y_obs) ||
+        error("Tempos e observações possuem tamanhos diferentes")
+
+    # Usar os instantes observados no VitalDB como referência
+    for i in eachindex(t_obs)
+
+        t = t_obs[i]
+        yo = y_obs[i]
+
+        # Considerar somente os 20 minutos após o baseline
+        if !(BASELINE_SECONDS <= t <= BASELINE_SECONDS + WINDOW_SECONDS)
+            continue
+        end
+
+        # Não criar medições onde o sinal observado está ausente
+        if !isfinite(yo)
+            continue
+        end
+
+        # Localizar os batimentos simulados que envolvem t
+        j = searchsortedlast(t_pred_s, t)
+
+        yp = NaN
+
+        if j >= 1 && j <= length(t_pred_s) &&
+           isapprox(t_pred_s[j], t; atol=1e-8)
+
+            # O instante coincide com um batimento simulado
+            yp = y_pred[j]
+
+        elseif j >= 1 && j < length(t_pred_s)
+
+            t1 = t_pred_s[j]
+            t2 = t_pred_s[j + 1]
+
+            # Não extrapolar nem interpolar sobre lacunas longas
+            if t2 > t1 && t2 - t1 <= 5.0
+
+                peso = (t - t1) / (t2 - t1)
+
+                yp = y_pred[j] +
+                     peso * (y_pred[j + 1] - y_pred[j])
+            end
+        end
+
+        if isfinite(yp)
             push!(times, t)
             push!(predicted, yp)
             push!(observed, yo)
         end
     end
+
     return times, predicted, observed
 end
+
 
 function predict_case(c::PreparedCase, effect::EfeitoHemodinamico)
     bat, _ = simular_hemodinamica(c.patient, c.pkpd;
@@ -261,7 +310,8 @@ function calibration_objective(x, train_cases)
                 push!(case_losses, mean(((p .- o) ./ scale).^2))
             end
             push!(losses, mean(case_losses))
-        catch
+        catch err
+            @warn "Falha durante a calibração" caseid=c.caseid erro=sprint(showerror, err) maxlog=1
             return 1e6
         end
     end
@@ -314,7 +364,7 @@ function main()
             x0,
             Optim.NelderMead(),
             Optim.Options(
-                iterations = 100,
+                iterations = 300,
                 show_trace = false,
                 store_trace = false
             )
@@ -371,14 +421,55 @@ function main()
         savefig(plt, joinpath(fig_dir, @sprintf("case_%05d_pam.png", c.caseid)))
 
         if c.partition == "teste"
-            for i in eachindex(pred_calibrated.pam_observed_mmHg)
+
+            # Cada simulação possui seus próprios instantes de tempo,
+            # pois a frequência cardíaca prevista pode ser diferente.
+            #
+            # Usaremos os instantes do modelo calibrado como referência
+            # e interpolaremos a previsão do modelo padrão nesses tempos.
+
+            t_default = pred_default.time_after_induction_s
+            pam_default = pred_default.pam_predicted_mmHg
+
+            for i in eachindex(pred_calibrated.time_after_induction_s)
+
+                # Instante correspondente à previsão calibrada
+                t = pred_calibrated.time_after_induction_s[i]
+
+                # PAM real observada no VitalDB
                 obs = pred_calibrated.pam_observed_mmHg[i]
-                dflt = pred_default.pam_predicted_mmHg[i]
+
+                # PAM prevista pelo modelo calibrado
                 cal = pred_calibrated.pam_predicted_mmHg[i]
+
+                # Localizar os tempos vizinhos no modelo padrão
+                j = searchsortedlast(t_default, t)
+
+                # Não extrapolar fora do intervalo simulado
+                if j < 1 || j >= length(t_default)
+                    continue
+                end
+
+                t1 = t_default[j]
+                t2 = t_default[j + 1]
+
+                # Interpolação linear da previsão padrão
+                if t2 <= t1
+                    continue
+                end
+
+                peso = (t - t1) / (t2 - t1)
+
+                dflt = pam_default[j] +
+                    peso * (pam_default[j + 1] - pam_default[j])
+
+                # Armazenar somente comparações válidas
                 if isfinite(obs) && isfinite(dflt) && isfinite(cal)
+
                     push!(test_pam_observed, obs)
                     push!(test_pam_default, dflt)
                     push!(test_pam_calibrated, cal)
+
                 end
             end
         end
