@@ -255,6 +255,79 @@ function case_metrics(c::PreparedCase, effect::EfeitoHemodinamico, method::Strin
         n_co=mc.n, co_mae_l_min=mc.mae, co_rmse_l_min=mc.rmse, co_bias_l_min=mc.bias)
 end
 
+# Compara dois modelos somente nos instantes observacionais
+# em que ambos possuem previsoes validas.
+function metricas_pareadas(par_padrao, par_calibrado)
+    t0, p0, o0 = par_padrao
+    t1, p1, o1 = par_calibrado
+
+    # Os tempos provem da mesma serie observada no VitalDB.
+    length(unique(t0)) == length(t0) ||
+        error("Tempos observados duplicados no modelo padrao")
+    length(unique(t1)) == length(t1) ||
+        error("Tempos observados duplicados no modelo calibrado")
+
+    indices_calibrado = Dict(t => i for (i, t) in enumerate(t1))
+
+    idx0 = [i for i in eachindex(t0) if haskey(indices_calibrado, t0[i])]
+    idx1 = [indices_calibrado[t0[i]] for i in idx0]
+
+    isempty(idx0) && error("Nenhuma observacao comum entre os modelos")
+
+    all(isapprox.(o0[idx0], o1[idx1]; atol=1e-8, rtol=0)) ||
+        error("Observacoes diferentes nos mesmos instantes")
+
+    m0 = metric_summary(p0[idx0], o0[idx0])
+    m1 = metric_summary(p1[idx1], o1[idx1])
+
+    return m0, m1
+end
+
+function case_metrics_paired(c, efeito_padrao, efeito_calibrado)
+    pred0 = predict_case(c, efeito_padrao)
+    pred1 = predict_case(c, efeito_calibrado)
+
+    bat0, t0 = pred0.bat, pred0.t_s
+    bat1, t1 = pred1.bat, pred1.t_s
+
+    function comparar(y0, y1, tobs, yobs)
+        par0 = aligned_pair(t0, Float64.(y0), tobs, yobs)
+        par1 = aligned_pair(t1, Float64.(y1), tobs, yobs)
+        return metricas_pareadas(par0, par1)
+    end
+
+    pam0, pam1 = comparar(bat0.PAM, bat1.PAM, c.t_pam, c.y_pam)
+    hr0, hr1 = comparar(bat0.FC, bat1.FC, c.t_hr, c.y_hr)
+    co0, co1 = comparar(bat0.DC, bat1.DC, c.t_co, c.y_co)
+
+    function linha(method, mp, mh, mc)
+        return (
+            caseid=c.caseid,
+            partition=c.partition,
+            coadmin_status=c.coadmin_status,
+            method=method,
+            n_pam=mp.n,
+            pam_mae_mmHg=mp.mae,
+            pam_rmse_mmHg=mp.rmse,
+            pam_bias_mmHg=mp.bias,
+            pam_correlation=mp.correlation,
+            n_hr=mh.n,
+            hr_mae_bpm=mh.mae,
+            hr_rmse_bpm=mh.rmse,
+            hr_bias_bpm=mh.bias,
+            n_co=mc.n,
+            co_mae_l_min=mc.mae,
+            co_rmse_l_min=mc.rmse,
+            co_bias_l_min=mc.bias
+        )
+    end
+
+    return (
+        linha("padrao", pam0, hr0, co0),
+        linha("calibrado", pam1, hr1, co1)
+    )
+end
+
 function prediction_dataframe(c::PreparedCase, effect::EfeitoHemodinamico)
     prediction = predict_case(c, effect)
     bat, ts = prediction.bat, prediction.t_s
@@ -388,6 +461,118 @@ function main()
         n_cases=[length(prepared)], n_train_clean=[length(train_clean)], n_test_clean=[length(test_clean)],
     )
     CSV.write(joinpath(OUT_DIR, "parametros_calibrados.csv"), params)
+
+
+    # ============================================================
+    # VALIDACAO CRUZADA EM 5 PARTICOES
+    # ============================================================
+
+    println("\n=== Validacao cruzada: 5 particoes ===")
+
+    K = 5
+    cv_metric_rows = NamedTuple[]
+    cv_param_rows = NamedTuple[]
+
+    # Os casos ja foram ordenados por caseid.
+    # Cada paciente pertence a exatamente uma particao.
+    folds = [mod1(i, K) for i in eachindex(prepared)]
+
+    for k in 1:K
+
+        casos_treino = [
+            prepared[i] for i in eachindex(prepared)
+            if folds[i] != k
+        ]
+
+        casos_teste = [
+            prepared[i] for i in eachindex(prepared)
+            if folds[i] == k
+        ]
+
+        println("\nParticao $k")
+        println("Treino: $(length(casos_treino)) pacientes")
+        println("Teste: $(length(casos_teste)) pacientes")
+
+        length(casos_treino) >= 3 ||
+            error("Treino insuficiente na particao $k")
+
+        length(casos_teste) >= 1 ||
+            error("Teste vazio na particao $k")
+
+        # Cada particao recebe uma calibracao independente.
+        x0_cv = [
+            default_effect.Ce50,
+            default_effect.γ,
+            default_effect.Imax_Rp,
+            default_effect.Imax_VS,
+            default_effect.Imax_FC
+        ]
+
+        objetivo_cv(x) = calibration_objective(x, casos_treino)
+
+        resultado_cv = Optim.optimize(
+            objetivo_cv,
+            x0_cv,
+            Optim.NelderMead(),
+            Optim.Options(
+                iterations = 300,
+                show_trace = false,
+                store_trace = false
+            )
+        )
+
+        x_cv = Optim.minimizer(resultado_cv)
+        efeito_cv = effect_from_vector(x_cv)
+
+        convergiu_cv = Optim.converged(resultado_cv)
+
+        println("Convergiu: $convergiu_cv")
+        println("Perda no treino: $(Optim.minimum(resultado_cv))")
+        println("Parametros ajustados: $x_cv")
+
+        push!(cv_param_rows, (
+            fold = k,
+            n_treino = length(casos_treino),
+            n_teste = length(casos_teste),
+            convergiu = convergiu_cv,
+            iteracoes = Optim.iterations(resultado_cv),
+            perda_treino = Optim.minimum(resultado_cv),
+            Ce50 = x_cv[1],
+            gamma = x_cv[2],
+            Imax_Rp = x_cv[3],
+            Imax_VS = x_cv[4],
+            Imax_FC = x_cv[5]
+        ))
+
+        # Avaliacao exclusivamente nos pacientes fora do treino
+        for c in casos_teste
+
+            metrica_padrao, metrica_calibrada = case_metrics_paired(
+                c, default_effect, efeito_cv
+            )
+
+            push!(cv_metric_rows,
+                merge(metrica_padrao, (fold = k,))
+            )
+
+            push!(cv_metric_rows,
+                merge(metrica_calibrada, (fold = k,))
+            )
+        end
+
+        # Salvar o progresso apos cada particao.
+        CSV.write(
+            joinpath(OUT_DIR, "parametros_validacao_cruzada.csv"),
+            DataFrame(cv_param_rows)
+        )
+
+        CSV.write(
+            joinpath(OUT_DIR, "metricas_validacao_cruzada.csv"),
+            DataFrame(cv_metric_rows)
+        )
+    end
+
+    println("\nValidacao cruzada concluida.")
 
     method_calibrated = startswith(calibration_status, "realizada") ? "calibrado" : "sem_calibracao"
     metric_rows = NamedTuple[]
