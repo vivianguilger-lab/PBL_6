@@ -29,6 +29,8 @@ ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_CLINICAL = ROOT / "dados" / "vitaldb" / "metadados" / "clinical_data.csv"
 OUT = ROOT / "dados" / "vitaldb" / "processados"
 CASES_OUT = OUT / "casos"
+REMI_HISTORY_OUT = OUT / "historico_remifentanil"
+REMI_TRACK = "Orchestra/RFTN20_RATE"
 
 REQUIRED_TRACKS = [
     "Solar8000/ART_MBP",
