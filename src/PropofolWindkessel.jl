@@ -108,7 +108,7 @@ export previsao_com_incerteza, amostrar_eta_pk, amostrar_efeito, OMEGA_PK, OMEGA
 export Individuo, gerar_coorte, calibrar_coorte, simular_coorte, resumo_coorte, dose_padrao
 # Plataforma web: plataforma() abre a interface em http://localhost:8080.
 export plataforma
-export parametros_minto, simular_remifentanil
+export parametros_minto, simular_remifentanil, fator_fc_remifentanil
 
 # Fim do módulo: tudo entre "module PropofolWindkessel" e "end" pertence ao pacote.
 end # module

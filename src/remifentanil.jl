@@ -251,3 +251,36 @@ function simular_remifentanil(
         remanescente_ug=remanescente_ug
     )
 end
+
+"""
+    fator_fc_remifentanil(ce_atual, ce_basal, beta)
+
+Hipotese farmacodinamica exploratoria para a variacao
+relativa da frequencia cardiaca.
+
+Ce em ng/mL.
+beta em (ng/mL)^-1.
+
+Nao representa um modelo clinico validado.
+"""
+function fator_fc_remifentanil(
+    ce_atual::Real,
+    ce_basal::Real,
+    beta::Real
+)
+    valores = (ce_atual, ce_basal, beta)
+
+    all(isfinite, valores) ||
+        throw(ArgumentError("Parametros nao finitos"))
+
+    ce_atual >= 0 ||
+        throw(ArgumentError("Ce atual negativa"))
+
+    ce_basal >= 0 ||
+        throw(ArgumentError("Ce basal negativa"))
+
+    beta >= 0 ||
+        throw(ArgumentError("Beta negativo"))
+
+    return exp(-beta * (ce_atual - ce_basal))
+end

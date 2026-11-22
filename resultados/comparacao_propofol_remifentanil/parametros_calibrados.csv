@@ -1,0 +1,2 @@
+status,objective,pk_model,Ce50_default,gamma_default,Imax_Rp_default,Imax_VS_default,Imax_FC_default,Ce50_calibrated,gamma_calibrated,Imax_Rp_calibrated,Imax_VS_calibrated,Imax_FC_calibrated,n_cases,n_train_clean,n_test_clean
+realizada; convergiu=true; iterações=232,0.034717662884801534,schnider,3.0,2.0,0.25,0.15,0.05,3.9128888283879038,4.999314369950123,0.013883931605297037,0.13824893849918204,0.34219077708446066,17,14,3

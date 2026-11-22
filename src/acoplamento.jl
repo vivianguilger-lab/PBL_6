@@ -342,8 +342,8 @@ function simular_hemodinamica(
         all(isfinite, (f_fc, f_vs, f_rp)) ||
             error("Fator hemodinamico adicional nao finito")
 
-        all(x -> 0.0 < x <= 1.0, (f_fc, f_vs, f_rp)) ||
-            error("Fator hemodinamico adicional fora do intervalo (0, 1]")
+        all(x -> isfinite(x) && x > 0.0, (f_fc, f_vs, f_rp)) ||
+            error("Fator hemodinamico adicional invalido")
 
         # Parametros hemodinamicos resultantes
         fc = pac.fc * fator_fc_prop * f_fc
