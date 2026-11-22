@@ -63,6 +63,7 @@ include("propofol.jl")
 # acoplamento.jl: liga a concentração no efetor (Ce) a Rp, VS e FC (Emax sigmoide
 # × sensibilidade do paciente; valores ilustrativos do grupo) e calcula a pressão
 # batimento a batimento no Windkessel. Usa os quatro arquivos anteriores.
+include("remifentanil.jl")
 include("acoplamento.jl")
 # calibracao.jl: paciente virtual (Rp = PAM/DC; C ajustada para reproduzir
 # PAS − PAD) e simulação da indução.
@@ -107,6 +108,7 @@ export previsao_com_incerteza, amostrar_eta_pk, amostrar_efeito, OMEGA_PK, OMEGA
 export Individuo, gerar_coorte, calibrar_coorte, simular_coorte, resumo_coorte, dose_padrao
 # Plataforma web: plataforma() abre a interface em http://localhost:8080.
 export plataforma
+export parametros_minto, simular_remifentanil
 
 # Fim do módulo: tudo entre "module PropofolWindkessel" e "end" pertence ao pacote.
 end # module

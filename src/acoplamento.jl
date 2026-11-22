@@ -282,9 +282,18 @@ Pressão arterial batimento a batimento durante a PK/PD `pkpd` (saída de
 batimento, `t_min, Ce, BIS, FC, VS, DC, Rp, PAS, PAD, PAM`; `onda` é
 `(t_s, pressao, fluxo)` se `forma_de_onda = true`.
 """
-function simular_hemodinamica(pac::Paciente, pkpd; efeito = EfeitoHemodinamico(), θbasal = theta_basal(pac),
-                              s = sensibilidade_hemodinamica(pac), h = 0.005, tfim = pkpd.t[end],
-                              forma = forma_fluxo(), forma_de_onda = false)
+function simular_hemodinamica(
+    pac::Paciente,
+    pkpd;
+    efeito = EfeitoHemodinamico(),
+    θbasal = theta_basal(pac),
+    s = sensibilidade_hemodinamica(pac),
+    h = 0.005,
+    tfim = pkpd.t[end],
+    forma = forma_fluxo(),
+    forma_de_onda = false,
+    fatores_adicionais = nothing
+)
     # Desempacota θ basal em quatro nomes (Rp0 = Rp antes do propofol).
     Rp0, C, Rc, L = θbasal
     # VS basal (ml/batimento) = DC (L/min) × 1000 (ml/L) ÷ FC (batimentos/min).
@@ -308,9 +317,38 @@ function simular_hemodinamica(pac::Paciente, pkpd; efeito = EfeitoHemodinamico()
         Ce = interp(pkpd.t, pkpd.Ce, t / 60)
         # (2) Efeito do propofol: cada variável = valor basal × fator_efeito.
         # FC (bpm), VS (ml) e Rp (mmHg·s/ml) caem com o Ce, e caem mais se s > 1.
-        fc = pac.fc * fator_efeito(efeito, efeito.Imax_FC, s, Ce)
-        vs = vs0 * fator_efeito(efeito, efeito.Imax_VS, s, Ce)
-        Rp = Rp0 * fator_efeito(efeito, efeito.Imax_Rp, s, Ce)
+        # Efeitos originais do propofol
+        fator_fc_prop = fator_efeito(
+            efeito, efeito.Imax_FC, s, Ce
+        )
+
+        fator_vs_prop = fator_efeito(
+            efeito, efeito.Imax_VS, s, Ce
+        )
+
+        fator_rp_prop = fator_efeito(
+            efeito, efeito.Imax_Rp, s, Ce
+        )
+
+        # Entrada opcional para outros efeitos farmacodinamicos.
+        # Sem entrada adicional, todos os fatores permanecem iguais a 1.
+        if fatores_adicionais === nothing
+            f_fc, f_vs, f_rp = 1.0, 1.0, 1.0
+        else
+            f_fc, f_vs, f_rp = fatores_adicionais(t)
+        end
+
+        # Verificacao de seguranca numerica
+        all(isfinite, (f_fc, f_vs, f_rp)) ||
+            error("Fator hemodinamico adicional nao finito")
+
+        all(x -> 0.0 < x <= 1.0, (f_fc, f_vs, f_rp)) ||
+            error("Fator hemodinamico adicional fora do intervalo (0, 1]")
+
+        # Parametros hemodinamicos resultantes
+        fc = pac.fc * fator_fc_prop * f_fc
+        vs = vs0 * fator_vs_prop * f_vs
+        Rp = Rp0 * fator_rp_prop * f_rp
         # (3) Duração do batimento em amostras (FC menor → batimento mais longo)
         # e o fluxo aórtico desse batimento, escalado para ejetar vs ml.
         n = round(Int, 60 / fc / h)
